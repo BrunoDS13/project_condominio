@@ -1,21 +1,35 @@
 {% extends "base.html" %}
-{% from "_macros.html" import paginacao, botao_post %}
+{% from "_macros.html" import paginacao, botao_post, pill %}
+{% set staff = current_user.role in ('admin', 'sindico', 'porteiro') %}
 {% block title %}Visitantes{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between mb-3"><h1 class="h4">Visitantes e prestadores</h1>
-{% if current_user.role in ('admin', 'sindico', 'porteiro') %}<a class="btn btn-primary" href="{{ url_for('visitantes.novo') }}">+ Registrar entrada</a>{% endif %}</div>
-<div class="btn-group btn-group-sm mb-3">
-  <a class="btn btn-outline-secondary {{ 'active' if filtro == 'dentro' }}" href="{{ url_for('visitantes.listar', filtro='dentro') }}">No condomínio agora</a>
-  <a class="btn btn-outline-secondary {{ 'active' if filtro == 'todos' }}" href="{{ url_for('visitantes.listar', filtro='todos') }}">Histórico</a>
-</div>
-<div class="table-responsive"><table class="table table-sm table-striped bg-white">
-  <thead><tr><th>Nome</th><th>Tipo</th><th>Unidade</th><th>Documento</th><th>Placa</th><th>Entrada</th><th>Saída</th><th></th></tr></thead>
-  {% for v in pag.items %}
-  <tr><td>{{ v.nome }}</td><td>{{ v.tipo_label }}</td><td>{{ v.unidade.identificacao }}</td><td>{{ v.documento or '—' }}</td>
-      <td>{{ v.placa or '—' }}</td><td>{{ v.entrada_em.strftime('%d/%m %H:%M') }}</td>
-      <td>{% if v.saida_em %}{{ v.saida_em.strftime('%d/%m %H:%M') }}{% else %}<span class="badge text-bg-success">Dentro</span>{% endif %}</td>
-      <td class="text-end">{% if v.dentro and current_user.role in ('admin', 'sindico', 'porteiro') %}{{ botao_post(url_for('visitantes.saida', id=v.id), 'Registrar saída', 'btn-outline-primary') }}{% endif %}</td></tr>
-  {% else %}<tr><td colspan="8" class="text-muted">Nenhum registro.</td></tr>{% endfor %}
-</table></div>
+<header class="page-head">
+  <div><h1>Visitantes e prestadores</h1><p class="sub">{{ pag.total }} {{ 'registro' if pag.total == 1 else 'registros' }}{% if filtro == 'dentro' %} no condomínio agora{% endif %}</p></div>
+  {% if staff %}<div class="actions"><a class="btn btn-primary" href="{{ url_for('visitantes.novo') }}">Registrar entrada</a></div>{% endif %}
+</header>
+<nav class="tabs" style="--i:0" aria-label="Filtro">
+  <a href="{{ url_for('visitantes.listar', filtro='dentro') }}"{% if filtro == 'dentro' %} aria-current="page"{% endif %}>No condomínio agora</a>
+  <a href="{{ url_for('visitantes.listar', filtro='todos') }}"{% if filtro == 'todos' %} aria-current="page"{% endif %}>Histórico</a>
+</nav>
+<section class="panel" style="--i:1">
+  {% if pag.items %}
+  <div class="table-wrap"><table class="t two">
+    <thead><tr><th>Quem</th><th>Unidade</th><th>Documento</th><th>Placa</th><th>Entrada</th><th>Saída</th><th><span class="visually-hidden">Ação</span></th></tr></thead>
+    <tbody>
+    {% for v in pag.items %}
+    <tr>
+      <td><span class="strong">{{ v.nome }}</span><span class="sub">{{ v.tipo_label }}</span></td>
+      <td>{{ v.unidade.identificacao }}</td>
+      <td>{% if v.documento %}{{ v.documento }}{% else %}<span class="dash">—</span>{% endif %}</td>
+      <td>{% if v.placa %}<span class="mono">{{ v.placa }}</span>{% else %}<span class="dash">—</span>{% endif %}</td>
+      <td>{{ v.entrada_em.strftime('%d/%m %H:%M') }}</td>
+      <td>{% if v.saida_em %}{{ v.saida_em.strftime('%d/%m %H:%M') }}{% else %}{{ pill('success', 'Dentro') }}{% endif %}</td>
+      <td class="act">{% if v.dentro and staff %}{{ botao_post(url_for('visitantes.saida', id=v.id), 'Registrar saída') }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="empty" style="margin-top: var(--pad)">{{ 'Ninguém no condomínio agora.' if filtro == 'dentro' else 'Nenhum registro.' }}</p>{% endif %}
+</section>
 {{ paginacao(pag, 'visitantes.listar', filtro=filtro) }}
 {% endblock %}

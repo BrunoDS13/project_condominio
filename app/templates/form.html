@@ -2,9 +2,9 @@
 {% from "_macros.html" import form_completo %}
 {% block title %}{{ titulo }}{% endblock %}
 {% block content %}
-<div style="max-width: 560px">
-  <a class="small text-muted text-decoration-none" href="{{ voltar }}">← Voltar</a>
-  <h1 class="mt-2 mb-3">{{ titulo }}</h1>
-  <div class="card card-body">{{ form_completo(form) }}</div>
+<div class="narrow">
+  <a class="back" href="{{ voltar }}">← Voltar</a>
+  <header class="page-head"><div><h1>{{ titulo }}</h1></div></header>
+  <div class="panel form-card">{{ form_completo(form) }}</div>
 </div>
 {% endblock %}

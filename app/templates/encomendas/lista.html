@@ -1,21 +1,33 @@
 {% extends "base.html" %}
-{% from "_macros.html" import paginacao %}
+{% from "_macros.html" import paginacao, pill %}
+{% set staff = current_user.role in ('admin', 'sindico', 'porteiro') %}
 {% block title %}Encomendas{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between mb-3"><h1 class="h4">Encomendas</h1>
-{% if current_user.role in ('admin', 'sindico', 'porteiro') %}<a class="btn btn-primary" href="{{ url_for('encomendas.nova') }}">+ Receber encomenda</a>{% endif %}</div>
-<div class="btn-group btn-group-sm mb-3">
-  <a class="btn btn-outline-secondary {{ 'active' if filtro == 'aguardando' }}" href="{{ url_for('encomendas.listar', filtro='aguardando') }}">Aguardando retirada</a>
-  <a class="btn btn-outline-secondary {{ 'active' if filtro == 'todas' }}" href="{{ url_for('encomendas.listar', filtro='todas') }}">Histórico</a>
-</div>
-<div class="table-responsive"><table class="table table-sm table-striped bg-white">
-  <thead><tr><th>Unidade</th><th>Descrição</th><th>Remetente</th><th>Recebida em</th><th>Retirada</th><th></th></tr></thead>
-  {% for e in pag.items %}
-  <tr><td>{{ e.unidade.identificacao }}</td><td>{{ e.descricao }}</td><td>{{ e.remetente or '—' }}</td>
+<header class="page-head">
+  <div><h1>Encomendas</h1><p class="sub">{{ pag.total }} {{ 'encomenda' if pag.total == 1 else 'encomendas' }}{% if filtro == 'aguardando' %} aguardando retirada{% endif %}</p></div>
+  {% if staff %}<div class="actions"><a class="btn btn-primary" href="{{ url_for('encomendas.nova') }}">Receber encomenda</a></div>{% endif %}
+</header>
+<nav class="tabs" style="--i:0" aria-label="Filtro">
+  <a href="{{ url_for('encomendas.listar', filtro='aguardando') }}"{% if filtro == 'aguardando' %} aria-current="page"{% endif %}>Aguardando retirada</a>
+  <a href="{{ url_for('encomendas.listar', filtro='todas') }}"{% if filtro == 'todas' %} aria-current="page"{% endif %}>Histórico</a>
+</nav>
+<section class="panel" style="--i:1">
+  {% if pag.items %}
+  <div class="table-wrap"><table class="t two">
+    <thead><tr><th>Unidade</th><th>Encomenda</th><th>Recebida em</th><th>Retirada</th><th><span class="visually-hidden">Ação</span></th></tr></thead>
+    <tbody>
+    {% for e in pag.items %}
+    <tr>
+      <td class="strong">{{ e.unidade.identificacao }}</td>
+      <td><span class="strong">{{ e.descricao }}</span><span class="sub">{{ e.remetente or '—' }}</span></td>
       <td>{{ e.recebida_em.strftime('%d/%m %H:%M') }}</td>
-      <td>{% if e.retirada_em %}{{ e.retirada_em.strftime('%d/%m %H:%M') }} · {{ e.retirada_por }}{% else %}<span class="badge text-bg-warning">Aguardando</span>{% endif %}</td>
-      <td class="text-end">{% if e.aguardando and current_user.role in ('admin', 'sindico', 'porteiro') %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('encomendas.retirar', id=e.id) }}">Registrar retirada</a>{% endif %}</td></tr>
-  {% else %}<tr><td colspan="6" class="text-muted">Nenhuma encomenda.</td></tr>{% endfor %}
-</table></div>
+      <td>{% if e.retirada_em %}{{ e.retirada_em.strftime('%d/%m %H:%M') }}<span class="sub">por {{ e.retirada_por }}</span>{% else %}{{ pill('warning', 'Aguardando') }}{% endif %}</td>
+      <td class="act">{% if e.aguardando and staff %}<a class="btn btn-sm btn-secondary" href="{{ url_for('encomendas.retirar', id=e.id) }}">Registrar retirada</a>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="empty" style="margin-top: var(--pad)">{{ 'Nada aguardando retirada.' if filtro == 'aguardando' else 'Nenhuma encomenda.' }}</p>{% endif %}
+</section>
 {{ paginacao(pag, 'encomendas.listar', filtro=filtro) }}
 {% endblock %}

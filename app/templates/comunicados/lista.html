@@ -1,16 +1,26 @@
 {% extends "base.html" %}
-{% from "_macros.html" import paginacao, botao_post %}
+{% from "_macros.html" import paginacao, botao_post, pill %}
 {% block title %}Comunicados{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between mb-3"><h1 class="h4">Comunicados</h1>
-{% if current_user.is_gestor %}<a class="btn btn-primary" href="{{ url_for('comunicados.novo') }}">+ Novo</a>{% endif %}</div>
-{% for c in pag.items %}
-<div class="card mb-2"><div class="card-body">
-  <div class="d-flex justify-content-between"><h2 class="h6">{% if c.fixado %}📌 {% endif %}{{ c.titulo }}</h2>
-  {% if current_user.is_gestor %}{{ botao_post(url_for('comunicados.excluir', id=c.id), 'Excluir', 'btn-outline-danger', 'Excluir comunicado?') }}{% endif %}</div>
-  <p class="mb-1" style="white-space: pre-wrap">{{ c.corpo }}</p>
-  <small class="text-muted">{{ c.autor.nome }} · {{ c.criado_em.strftime('%d/%m/%Y %H:%M') }}</small>
-</div></div>
-{% else %}<p class="text-muted">Nenhum comunicado.</p>{% endfor %}
+<header class="page-head">
+  <div><h1>Comunicados</h1><p class="sub">{{ pag.total }} {{ 'publicação' if pag.total == 1 else 'publicações' }}</p></div>
+  {% if current_user.is_gestor %}<div class="actions"><a class="btn btn-primary" href="{{ url_for('comunicados.novo') }}">Novo comunicado</a></div>{% endif %}
+</header>
+<section class="panel" style="--i:1">
+  {% if pag.items %}
+  <ul class="feed feed-full">
+    {% for c in pag.items %}
+    <li>
+      <div class="feed-row">
+        <h3>{% if c.fixado %}{{ pill('info', 'Fixado') }}{% endif %}{{ c.titulo }}</h3>
+        {% if current_user.is_gestor %}{{ botao_post(url_for('comunicados.excluir', id=c.id), 'Excluir', 'btn-ghost btn-danger', 'Excluir este comunicado?') }}{% endif %}
+      </div>
+      <p>{{ c.corpo }}</p>
+      <div class="meta">{{ c.autor.nome }} · {{ c.criado_em.strftime('%d/%m/%Y %H:%M') }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="empty" style="margin-top: var(--pad)">Nenhum comunicado publicado.</p>{% endif %}
+</section>
 {{ paginacao(pag, 'comunicados.listar') }}
 {% endblock %}

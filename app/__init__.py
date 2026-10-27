@@ -26,6 +26,10 @@ def create_app(config_name="dev"):
     app.jinja_env.filters["brl"] = brl
     app.jinja_env.filters["data_br"] = data_br
 
+    @app.context_processor
+    def contexto_global():
+        return {"condominio_nome": app.config["CONDOMINIO_NOME"], "menu": _contadores_menu()}
+
     from app.cli import register_cli
 
     register_cli(app)
@@ -65,3 +69,20 @@ def _register_errors(app):
         app.register_error_handler(
             code, lambda e, code=code, msg=msg: (render_template("error.html", code=code, msg=msg), code)
         )
+
+
+def _contadores_menu():
+    """Contagens do menu lateral: só filas que pedem ação, para gestor e porteiro."""
+    from flask_login import current_user
+
+    from app.models import Encomenda, Ocorrencia, Reserva, StatusOcorrencia, StatusReserva
+
+    vazio = {"ocorrencias": 0, "reservas": 0, "encomendas": 0}
+    if not current_user.is_authenticated or current_user.role == "morador":
+        return vazio
+    cont = db.session.scalar
+    return {
+        "ocorrencias": cont(db.select(db.func.count(Ocorrencia.id)).where(Ocorrencia.status != StatusOcorrencia.RESOLVIDA)) if current_user.is_gestor else 0,
+        "reservas": cont(db.select(db.func.count(Reserva.id)).where(Reserva.status == StatusReserva.PENDENTE)) if current_user.is_gestor else 0,
+        "encomendas": cont(db.select(db.func.count(Encomenda.id)).where(Encomenda.retirada_em.is_(None))),
+    }

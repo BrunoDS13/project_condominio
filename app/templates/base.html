@@ -1,141 +1,98 @@
 <!doctype html>
-<html lang="pt-BR" data-bs-theme="dark">
+<html lang="pt-BR" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark light">
-  <meta name="theme-color" content="#0b0c0d">
-  <title>{% block title %}Condomínio{% endblock %} · Gestão de Condomínio</title>
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}Condomínio{% endblock %} · {{ condominio_nome }}</title>
   <script>
     (function () {
       var p = null; try { p = localStorage.getItem('tema'); } catch (e) {}
-      var t = p === 'claro' ? 'light' : p === 'escuro' ? 'dark' : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-      document.documentElement.setAttribute('data-bs-theme', t);
+      var t = p === 'claro' ? 'light' : p === 'escuro' ? 'dark' : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', t);
     })();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="{{ url_for('static', filename='app.css') }}" rel="stylesheet">
 </head>
 <body>
+{% from "_macros.html" import ico %}
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
-{% macro logo() %}
-<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-  <rect x="3" y="3" width="18" height="18" rx="5" fill="#5e6ad2"/>
-  <path d="M8 17V8.5L12 6l4 2.5V17M8 17h8M10.5 11h1M12.5 11h1M10.5 14h1M12.5 14h1" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
+{% macro item(rotulo, endpoint, bp, icone, qtd=0) %}
+  <a href="{{ url_for(endpoint) }}"{% if request.blueprint == bp %} aria-current="page"{% endif %}>{{ ico(icone) }}<span>{{ rotulo }}</span>{% if qtd %}<span class="count" aria-label="{{ qtd }} pendentes">{{ qtd }}</span>{% endif %}</a>
 {% endmacro %}
 
-{% macro tema_btn(extra='') %}
-  <button type="button" class="btn btn-sm btn-outline-secondary {{ extra }}" data-tema-btn aria-label="Alternar tema">Tema: Sistema</button>
-{% endmacro %}
+{% macro marca() %}<span class="brand-mark">{{ ico('predio-marca') }}</span>{% endmacro %}
 
-{% macro item(label, endpoint, bp) %}
-  <a class="side-link {{ 'active' if request.blueprint == bp }}" href="{{ url_for(endpoint) }}"{% if request.blueprint == bp %} aria-current="page"{% endif %}>{{ label }}</a>
-{% endmacro %}
-
-{% set logado = current_user.is_authenticated %}
-
-{% if logado %}
+{% if current_user.is_authenticated %}
+{% set papel = current_user.role %}
+{% set staff = papel in ('admin', 'sindico', 'porteiro') %}
 <div class="shell">
   <aside class="sidebar" id="sidebar" aria-label="Menu principal">
-    <div class="sidebar-inner">
-      <a class="brand" href="{{ url_for('main.dashboard') }}">{{ logo() }}<span>Condomínio<small>Gestão</small></span></a>
-      <nav>
-        {{ item('Visão geral', 'main.dashboard', 'main') }}
-        <div class="nav-group">Comunicação</div>
-        {{ item('Comunicados', 'comunicados.listar', 'comunicados') }}
-        {{ item('Ocorrências', 'ocorrencias.listar', 'ocorrencias') }}
-        <div class="nav-group">Financeiro</div>
-        {{ item('Cobranças', 'cobrancas.listar', 'cobrancas') }}
-        {{ item('Prestação de contas', 'financeiro.prestacao', 'financeiro') }}
-        <div class="nav-group">Áreas comuns</div>
-        {{ item('Reservas', 'reservas.listar', 'reservas') }}
-        <div class="nav-group">Portaria</div>
-        {{ item('Visitantes', 'visitantes.listar', 'visitantes') }}
-        {{ item('Encomendas', 'encomendas.listar', 'encomendas') }}
-        {{ item('Veículos', 'veiculos.listar', 'veiculos') }}
-        {% if current_user.is_gestor %}
-        <div class="nav-group">Administração</div>
-        {{ item('Unidades', 'unidades.listar', 'unidades') }}
-        {{ item('Usuários', 'usuarios.listar', 'usuarios') }}
-        {% endif %}
-      </nav>
-      <div class="side-user">
-        <div class="name">{{ current_user.nome }}</div>
-        <div class="text-muted small mb-2">{{ current_user.role_label }}{% if current_user.unidade %} · {{ current_user.unidade.identificacao }}{% endif %}</div>
-        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('auth.trocar_senha') }}">Senha</a>
-        <form method="post" action="{{ url_for('auth.logout') }}" class="d-inline">
+    <a class="brand" href="{{ url_for('main.dashboard') }}">
+      {{ marca() }}
+      <span class="brand-name">{{ condominio_nome }}<span class="brand-sub">Gestão do condomínio</span></span>
+    </a>
+    <nav class="nav">
+      {{ item('Visão geral', 'main.dashboard', 'main', 'home') }}
+      <div class="nav-label">Comunicação</div>
+      {{ item('Comunicados', 'comunicados.listar', 'comunicados', 'megafone') }}
+      {{ item('Ocorrências', 'ocorrencias.listar', 'ocorrencias', 'alerta', menu.ocorrencias) }}
+      <div class="nav-label">Financeiro</div>
+      {{ item('Cobranças', 'cobrancas.listar', 'cobrancas', 'recibo') }}
+      {{ item('Prestação de contas', 'financeiro.prestacao', 'financeiro', 'barras') }}
+      <div class="nav-label">Áreas comuns</div>
+      {{ item('Reservas', 'reservas.listar', 'reservas', 'calendario', menu.reservas) }}
+      <div class="nav-label">Portaria</div>
+      {{ item('Visitantes', 'visitantes.listar', 'visitantes', 'entrada') }}
+      {{ item('Encomendas', 'encomendas.listar', 'encomendas', 'pacote', menu.encomendas) }}
+      {{ item('Veículos', 'veiculos.listar', 'veiculos', 'carro') }}
+      {% if current_user.is_gestor %}
+      <div class="nav-label">Administração</div>
+      {{ item('Unidades', 'unidades.listar', 'unidades', 'predio') }}
+      {{ item('Usuários', 'usuarios.listar', 'usuarios', 'usuarios') }}
+      {% endif %}
+    </nav>
+    <div class="side-foot">
+      <div class="me">
+        <span class="avatar" aria-hidden="true">{{ current_user.nome[:1]|upper }}</span>
+        <div><div class="me-name">{{ current_user.nome }}</div>
+        <div class="me-role">{{ current_user.role_label }}{% if current_user.unidade %} · {{ current_user.unidade.identificacao }}{% endif %}</div></div>
+      </div>
+      <div class="foot-actions">
+        <button type="button" class="btn btn-ghost btn-sm" data-tema-btn aria-label="Alternar tema">Tema</button>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('auth.trocar_senha') }}">Senha</a>
+        <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-sm btn-outline-secondary">Sair</button>
+          <button type="submit" class="btn btn-ghost btn-sm">Sair</button>
         </form>
-        <div class="mt-2">{{ tema_btn() }}</div>
       </div>
     </div>
   </aside>
-  <div class="main-col">
+  <div class="scrim" id="scrim"></div>
+  <div class="main">
     <div class="mobile-bar">
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="menu-toggle" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">Menu</button>
-      <span class="d-flex align-items-center gap-2 fw-semibold">{{ logo() }} Condomínio</span>
+      <button type="button" class="btn btn-secondary btn-sm" id="menu-toggle" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">Menu</button>
+      <span class="brand-name">{{ condominio_nome }}</span>
     </div>
+{% else %}
+  <div class="tema-fixo"><button type="button" class="btn btn-secondary btn-sm" data-tema-btn aria-label="Alternar tema">Tema</button></div>
 {% endif %}
-    {% if not logado %}<div class="tema-fixo">{{ tema_btn() }}</div>{% endif %}
-    <main class="{{ 'content' if logado else 'container py-5' }}" id="conteudo">
-      <div aria-live="polite">
+    <main id="conteudo"{% if current_user.is_authenticated %} class="canvas"{% endif %}>
       {% with msgs = get_flashed_messages(with_categories=true) %}
-        {% for cat, msg in msgs %}<div class="alert alert-{{ cat }} alert-dismissible fade show" role="status">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button></div>{% endfor %}
+      {% if msgs %}<div class="notices" role="status" aria-live="polite">
+        {% for cat, msg in msgs %}<div class="notice {{ cat }}"><p>{{ msg }}</p><button type="button" class="notice-x" aria-label="Fechar aviso">×</button></div>{% endfor %}
+      </div>{% endif %}
       {% endwith %}
-      </div>
       {% block content %}{% endblock %}
     </main>
-{% if logado %}
+{% if current_user.is_authenticated %}
   </div>
 </div>
 {% endif %}
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  // tema: Sistema -> Claro -> Escuro (lembrado neste navegador)
-  (function () {
-    var ordem = [null, 'claro', 'escuro'], rotulos = { null: 'Sistema', claro: 'Claro', escuro: 'Escuro' };
-    function lerPref() { try { return localStorage.getItem('tema'); } catch (e) { return null; } }
-    function aplicar(pref) {
-      var t = pref === 'claro' ? 'light' : pref === 'escuro' ? 'dark' : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-      document.documentElement.setAttribute('data-bs-theme', t);
-      document.querySelectorAll('[data-tema-btn]').forEach(function (b) { b.textContent = 'Tema: ' + rotulos[pref]; });
-    }
-    var pref = lerPref(); if (pref !== 'claro' && pref !== 'escuro') pref = null;
-    aplicar(pref);
-    document.querySelectorAll('[data-tema-btn]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        pref = ordem[(ordem.indexOf(pref) + 1) % ordem.length];
-        try { pref ? localStorage.setItem('tema', pref) : localStorage.removeItem('tema'); } catch (e) {}
-        aplicar(pref);
-      });
-    });
-    matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () { if (!pref) aplicar(null); });
-  })();
-  // menu lateral no celular
-  (function () {
-    var btn = document.getElementById('menu-toggle'), bar = document.getElementById('sidebar');
-    if (!btn || !bar) return;
-    function set(open) { bar.classList.toggle('open', open); btn.setAttribute('aria-expanded', open); btn.textContent = open ? 'Fechar' : 'Menu'; }
-    btn.addEventListener('click', function () { set(!bar.classList.contains('open')); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') set(false); });
-    bar.addEventListener('click', function (e) { if (e.target.closest('a')) set(false); });
-  })();
-  // evita envio duplicado: desabilita o botão ao enviar e mostra "Aguarde…"
-  document.addEventListener('submit', function (e) {
-    var b = e.target.querySelector('button.btn-primary[type=submit], button.btn-primary:not([type])');
-    if (!b || e.defaultPrevented) return;
-    setTimeout(function () { b.disabled = true; b.dataset.rotulo = b.textContent; b.textContent = 'Aguarde…'; }, 0);
-  });
-  window.addEventListener('pageshow', function () {
-    document.querySelectorAll('button[data-rotulo]').forEach(function (b) { b.disabled = false; b.textContent = b.dataset.rotulo; });
-  });
-</script>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>
 </html>

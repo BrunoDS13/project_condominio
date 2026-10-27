@@ -1,14 +1,27 @@
 {% extends "base.html" %}
-{% from "_macros.html" import form_completo %}
+{% from "_macros.html" import form_completo, ico %}
 {% block title %}Entrar{% endblock %}
 {% block content %}
-<div class="mx-auto" style="max-width: 360px; margin-top: 8vh">
-  <div class="d-flex align-items-center gap-2 mb-4">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="#5e6ad2"/><path d="M8 17V8.5L12 6l4 2.5V17M8 17h8M10.5 11h1M12.5 11h1M10.5 14h1M12.5 14h1" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span class="fw-semibold">Condomínio · Gestão</span>
+{# janelas "acesas": quais apartamentos aparecem preenchidos na fachada do login (só decoração, mesmo desenho em todo acesso) #}
+{% set apagadas = [1, 4, 6, 9, 10, 13] %}
+<div class="auth">
+  <div class="auth-main">
+    <div class="auth-card">
+      <div class="auth-brand"><span class="brand-mark">{{ ico('predio-marca') }}</span><span class="brand-name">{{ condominio_nome }}<span class="brand-sub">Gestão do condomínio</span></span></div>
+      <h1>Entrar</h1>
+      <p class="sub">Use o e-mail cadastrado pela administração.</p>
+      <div class="panel" style="padding: var(--pad)">{{ form_completo(form, "Entrar") }}</div>
+    </div>
   </div>
-  <h1 class="mb-1">Entrar</h1>
-  <p class="text-muted mb-4">Use o e-mail cadastrado pela administração.</p>
-  <div class="card card-body">{{ form_completo(form, "Entrar") }}</div>
+  <aside class="auth-art" aria-hidden="true">
+    <div class="auth-fachada">
+      {% for bloco in range(2) %}
+      <div class="auth-bloco">
+        {% for n in range(8) %}<i class="{{ 'off' if (bloco * 8 + n) in apagadas }}" style="--i: {{ bloco * 8 + n }}"></i>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <div><div class="nome">{{ condominio_nome }}</div><p class="lema">Cobranças, reservas, portaria e comunicados num só lugar.</p></div>
+  </aside>
 </div>
 {% endblock %}

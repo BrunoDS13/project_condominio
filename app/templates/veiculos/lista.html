@@ -1,18 +1,35 @@
 {% extends "base.html" %}
-{% from "_macros.html" import paginacao %}
+{% from "_macros.html" import paginacao, pill %}
+{% set staff = current_user.role in ('admin', 'sindico', 'porteiro') %}
 {% block title %}Veículos{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between mb-3"><h1 class="h4">Veículos e vagas</h1>
-{% if current_user.role in ('admin', 'sindico', 'porteiro') %}<a class="btn btn-primary" href="{{ url_for('veiculos.novo') }}">+ Novo</a>{% endif %}</div>
-<form class="row g-2 mb-3" method="get"><div class="col-auto"><input class="form-control form-control-sm" name="placa" value="{{ busca }}" placeholder="ABC1D23…" aria-label="Buscar por placa" autocomplete="off" spellcheck="false"></div>
-<div class="col-auto"><button type="submit" class="btn btn-sm btn-outline-secondary">Buscar</button></div></form>
-<div class="table-responsive"><table class="table table-sm table-striped bg-white">
-  <thead><tr><th>Placa</th><th>Tipo</th><th>Modelo</th><th>Cor</th><th>Unidade</th><th>Vaga</th><th>Status</th><th></th></tr></thead>
-  {% for v in pag.items %}
-  <tr><td><strong>{{ v.placa }}</strong></td><td>{{ v.tipo_label }}</td><td>{{ v.modelo or '—' }}</td><td>{{ v.cor or '—' }}</td>
-      <td>{{ v.unidade.identificacao }}</td><td>{{ v.vaga or '—' }}</td><td>{{ 'Ativo' if v.ativo else 'Inativo' }}</td>
-      <td>{% if current_user.role in ('admin', 'sindico', 'porteiro') %}<a href="{{ url_for('veiculos.editar', id=v.id) }}">Editar</a>{% endif %}</td></tr>
-  {% else %}<tr><td colspan="8" class="text-muted">Nenhum veículo.</td></tr>{% endfor %}
-</table></div>
+<header class="page-head">
+  <div><h1>Veículos e vagas</h1><p class="sub">{{ pag.total }} {{ 'veículo' if pag.total == 1 else 'veículos' }}{% if busca %} para “{{ busca }}”{% endif %}</p></div>
+  {% if staff %}<div class="actions"><a class="btn btn-primary" href="{{ url_for('veiculos.novo') }}">Novo veículo</a></div>{% endif %}
+</header>
+<form class="toolbar" method="get" role="search" style="--i:0">
+  <label class="visually-hidden" for="placa">Buscar por placa</label>
+  <input class="input" id="placa" name="placa" value="{{ busca }}" placeholder="Buscar placa…" autocomplete="off" spellcheck="false">
+  <button type="submit" class="btn btn-secondary">Buscar</button>
+</form>
+<section class="panel" style="--i:1">
+  {% if pag.items %}
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Placa</th><th>Veículo</th><th>Unidade</th><th>Vaga</th><th>Situação</th><th><span class="visually-hidden">Ação</span></th></tr></thead>
+    <tbody>
+    {% for v in pag.items %}
+    <tr>
+      <td class="strong"><span class="mono">{{ v.placa }}</span></td>
+      <td>{{ v.tipo_label }}{% if v.modelo %} · {{ v.modelo }}{% endif %}{% if v.cor %} <span class="muted">({{ v.cor }})</span>{% endif %}</td>
+      <td>{{ v.unidade.identificacao }}</td>
+      <td>{% if v.vaga %}{{ v.vaga }}{% else %}<span class="dash">—</span>{% endif %}</td>
+      <td>{{ pill('success' if v.ativo else 'secondary', 'Ativo' if v.ativo else 'Inativo') }}</td>
+      <td class="act">{% if staff %}<a class="btn btn-sm btn-ghost" href="{{ url_for('veiculos.editar', id=v.id) }}">Editar</a>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="empty" style="margin-top: var(--pad)">Nenhum veículo encontrado.</p>{% endif %}
+</section>
 {{ paginacao(pag, 'veiculos.listar', placa=busca) }}
 {% endblock %}

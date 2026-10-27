@@ -1,45 +1,243 @@
 {% extends "base.html" %}
+{% from "_macros.html" import ico, pill, botao_post %}
 {% block title %}Visão geral{% endblock %}
 {% block content %}
-<div class="mb-4">
-  <h1 class="mb-0">Visão geral</h1>
-  <div class="text-muted">{% if current_user.is_gestor or current_user.role == 'porteiro' %}Todas as unidades{% elif current_user.unidade %}Unidade {{ current_user.unidade.identificacao }}{% else %}Sem unidade vinculada{% endif %} · {{ hoje|data_br }}</div>
-</div>
+{% set ns = namespace(i=0) %}
 
-<div class="metrics mb-4">
-  <a class="metric" href="{{ url_for('cobrancas.listar', status='pendente') }}"><div class="metric-label">Em aberto</div><div class="metric-value">{{ stats.em_aberto|brl }}</div></a>
-  <a class="metric" href="{{ url_for('cobrancas.listar', status='atrasada') }}"><div class="metric-label">Cobranças atrasadas</div><div class="metric-value {{ 'bad' if stats.atrasadas }}">{{ stats.atrasadas }}</div></a>
-  <a class="metric" href="{{ url_for('ocorrencias.listar') }}"><div class="metric-label">Ocorrências abertas</div><div class="metric-value">{{ stats.ocorrencias }}</div></a>
-  <a class="metric" href="{{ url_for('reservas.listar') }}"><div class="metric-label">Reservas pendentes</div><div class="metric-value">{{ stats.reservas }}</div></a>
-  <a class="metric" href="{{ url_for('visitantes.listar') }}"><div class="metric-label">Visitantes dentro</div><div class="metric-value">{{ stats.visitantes }}</div></a>
-  <a class="metric" href="{{ url_for('encomendas.listar') }}"><div class="metric-label">Encomendas aguardando</div><div class="metric-value">{{ stats.encomendas }}</div></a>
-</div>
+{# ============ GESTOR: a fachada responde "quais unidades?" ============ #}
+{% if perfil == 'gestor' %}
+<header class="page-head">
+  <div>
+    <h1>Visão geral</h1>
+    <p class="sub">{{ titulo_sub|safe }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-secondary" href="{{ url_for('cobrancas.lote') }}">Gerar cobranças</a>
+    <a class="btn btn-primary" href="{{ url_for('cobrancas.inadimplencia') }}">Ver inadimplência</a>
+  </div>
+</header>
 
-<div class="row g-4">
-  <div class="col-lg-7">
-    <section class="panel" aria-labelledby="h-atraso">
-      <div class="panel-head"><h2 id="h-atraso">Cobranças em atraso</h2><a class="small" href="{{ url_for('cobrancas.listar', status='atrasada') }}">Ver todas</a></div>
-      {% if em_atraso %}
-      <div class="table-responsive"><table class="table table-sm mb-0">
-        <thead><tr><th>Unidade</th><th>Vencimento</th><th class="text-end">Atraso</th><th class="text-end">Valor atualizado</th></tr></thead>
-        {% for c in em_atraso %}
-        <tr><td>{{ c.unidade.identificacao }}</td><td>{{ c.vencimento|data_br }}</td><td class="text-end">{{ c.dias_atraso() }} dias</td><td class="text-end">{{ c.valor_atualizado()|brl }}</td></tr>
+<section class="stats" style="--i:0" aria-label="Resumo financeiro">
+  <div class="stat lead">
+    <div class="stat-label">Em atraso, com multa e juros</div>
+    <div class="stat-value money {{ 'bad' if n_atrasadas }}" data-count="{{ total_atraso }}" data-fmt="brl">{{ total_atraso|brl }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Recebido neste mês</div>
+    <div class="stat-value money" data-count="{{ mes.receitas }}" data-fmt="brl">{{ mes.receitas|brl }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Despesas neste mês</div>
+    <div class="stat-value money">{{ mes.despesas|brl }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Saldo em caixa</div>
+    <div class="stat-value money {{ 'bad' if mes.saldo_caixa < 0 }}">{{ mes.saldo_caixa|brl }}</div>
+  </div>
+</section>
+
+<div class="grid g-8-4 g-top" style="margin-top: var(--gap)">
+  <section class="panel" style="--i:1" aria-labelledby="h-fachada">
+    <div class="panel-head">
+      <h2 id="h-fachada">Fachada</h2>
+      <div class="legenda"><span><i></i>Em dia</span><span><i class="l-atraso"></i>Em atraso</span></div>
+    </div>
+    {% if fachada %}
+    <div class="fachada-body" style="--blocos: {{ fachada|length }}">
+      {% for b in fachada %}
+      <div class="bloco">
+        <h3>{{ b.nome }}</h3>
+        {% for a in b.andares %}
+        <div class="andar" style="--cols: {{ a.unidades|length }}">
+          <span class="andar-rot">{{ a.rotulo }}</span>
+          {% for u in a.unidades %}
+          {% set ns.i = ns.i + 1 %}
+          <a class="apto {{ 'atraso' if u.qtd }}" style="--i: {{ ns.i }}" href="{{ url_for('cobrancas.listar', unidade=u.id) }}"
+             aria-label="Unidade {{ u.identificacao }}: {{ (u.qtd ~ (' cobrança em atraso' if u.qtd == 1 else ' cobranças em atraso')) if u.qtd else 'em dia' }}">
+            <strong>{{ u.numero }}</strong>
+            <span>{% if u.qtd %}{{ u.qtd }} em atraso{% else %}Em dia{% endif %}</span>
+          </a>
+          {% endfor %}
+        </div>
         {% endfor %}
-      </table></div>
-      {% else %}<div class="empty">Nenhuma cobrança em atraso.</div>{% endif %}
-    </section>
-  </div>
-  <div class="col-lg-5">
-    <section class="panel" aria-labelledby="h-com">
-      <div class="panel-head"><h2 id="h-com">Comunicados</h2><a class="small" href="{{ url_for('comunicados.listar') }}">Ver todos</a></div>
-      {% for c in comunicados %}
-      <div class="row-item">
-        <div class="fw-medium">{% if c.fixado %}<span class="badge text-bg-primary me-1">Fixado</span>{% endif %}{{ c.titulo }}</div>
-        <div class="text-muted small mt-1">{{ c.corpo|truncate(140) }}</div>
-        <div class="text-muted small mt-1">{{ c.autor.nome }} · {{ c.criado_em.strftime('%d/%m/%Y') }}</div>
       </div>
-      {% else %}<div class="empty">Nenhum comunicado publicado.</div>{% endfor %}
-    </section>
-  </div>
+      {% endfor %}
+    </div>
+    {% else %}<p class="empty">Nenhuma unidade cadastrada. <a class="link" href="{{ url_for('unidades.nova') }}">Cadastrar unidade</a></p>{% endif %}
+  </section>
+
+  <section class="panel" style="--i:2" aria-labelledby="h-fila">
+    <div class="panel-head"><h2 id="h-fila">Precisa de você</h2></div>
+    <ul class="fila">
+      {% for f in fila %}
+      <li><a href="{{ url_for(f.url) }}">
+        <span class="fila-n {{ 'zero' if not f.n }}">{{ f.n }}</span>
+        <span class="fila-txt"><strong>{{ f.rotulo }}</strong><small>{{ f.sub }}</small></span>
+        <span class="chev">{{ ico('chevron') }}</span>
+      </a></li>
+      {% endfor %}
+    </ul>
+  </section>
 </div>
+
+<div class="grid g-7-5 g-top" style="margin-top: var(--gap)">
+  <section class="panel" style="--i:3" aria-labelledby="h-atraso">
+    <div class="panel-head"><h2 id="h-atraso">Mais antigas em atraso</h2><a href="{{ url_for('cobrancas.listar', status='atrasada') }}">Ver todas</a></div>
+    {% if em_atraso %}
+    <div class="table-wrap"><table class="t">
+      <thead><tr><th>Unidade</th><th>Vencimento</th><th class="num">Atraso</th><th class="num">Valor atualizado</th><th><span class="visually-hidden">Ação</span></th></tr></thead>
+      <tbody>
+      {% for c in em_atraso %}
+      <tr><td class="strong">{{ c.unidade.identificacao }}</td><td>{{ c.vencimento|data_br }}</td><td class="num">{{ c.dias_atraso() }} dias</td>
+          <td class="num strong">{{ c.valor_atualizado()|brl }}</td>
+          <td class="act">{{ botao_post(url_for('cobrancas.pagar', id=c.id), 'Dar baixa') }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<p class="empty">Nenhuma cobrança em atraso.</p>{% endif %}
+  </section>
+
+  <section class="panel" style="--i:4" aria-labelledby="h-com">
+    <div class="panel-head"><h2 id="h-com">Comunicados</h2><a href="{{ url_for('comunicados.listar') }}">Ver todos</a></div>
+    {% if comunicados %}
+    <ul class="feed">
+      {% for c in comunicados %}
+      <li><h3>{% if c.fixado %}{{ pill('info', 'Fixado') }}{% endif %}{{ c.titulo }}</h3><p>{{ c.corpo }}</p><div class="meta">{{ c.autor.nome }} · {{ c.criado_em.strftime('%d/%m/%Y') }}</div></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty">Nenhum comunicado publicado.</p>{% endif %}
+  </section>
+</div>
+
+{# ============ PORTEIRO: o turno inteiro na portaria ============ #}
+{% elif perfil == 'porteiro' %}
+<header class="page-head">
+  <div><h1>Portaria</h1><p class="sub">{{ titulo_sub|safe }}</p></div>
+  <div class="actions">
+    <a class="btn btn-secondary" href="{{ url_for('encomendas.nova') }}">Receber encomenda</a>
+    <a class="btn btn-primary" href="{{ url_for('visitantes.novo') }}">Registrar entrada</a>
+  </div>
+</header>
+<div class="grid g-6-6 g-top">
+  <section class="panel" style="--i:1" aria-labelledby="h-dentro">
+    <div class="panel-head"><h2 id="h-dentro">No condomínio agora</h2><a href="{{ url_for('visitantes.listar') }}">Ver histórico</a></div>
+    {% if dentro %}
+    <div class="table-wrap"><table class="t two">
+      <thead><tr><th>Quem</th><th>Unidade</th><th>Entrada</th><th><span class="visually-hidden">Ação</span></th></tr></thead>
+      <tbody>
+      {% for v in dentro %}
+      <tr><td><span class="strong">{{ v.nome }}</span><span class="sub">{{ v.tipo_label }}{% if v.placa %} · <span class="mono">{{ v.placa }}</span>{% endif %}</span></td>
+          <td>{{ v.unidade.identificacao }}</td><td>{{ v.entrada_em.strftime('%H:%M') }}</td>
+          <td class="act">{{ botao_post(url_for('visitantes.saida', id=v.id), 'Registrar saída') }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<p class="empty">Ninguém registrado no condomínio.</p>{% endif %}
+  </section>
+  <section class="panel" style="--i:2" aria-labelledby="h-aguard">
+    <div class="panel-head"><h2 id="h-aguard">Encomendas aguardando</h2><a href="{{ url_for('encomendas.listar') }}">Ver todas</a></div>
+    {% if aguardando %}
+    <div class="table-wrap"><table class="t two">
+      <thead><tr><th>Unidade</th><th>Encomenda</th><th>Recebida</th><th><span class="visually-hidden">Ação</span></th></tr></thead>
+      <tbody>
+      {% for e in aguardando %}
+      <tr><td class="strong">{{ e.unidade.identificacao }}</td>
+          <td><span class="strong">{{ e.descricao }}</span><span class="sub">{{ e.remetente or '—' }}</span></td>
+          <td>{{ e.recebida_em.strftime('%d/%m %H:%M') }}</td>
+          <td class="act"><a class="btn btn-sm btn-secondary" href="{{ url_for('encomendas.retirar', id=e.id) }}">Registrar retirada</a></td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<p class="empty">Nenhuma encomenda aguardando retirada.</p>{% endif %}
+  </section>
+</div>
+<div class="grid g-6-6 g-top" style="margin-top: var(--gap)">
+  <section class="panel" style="--i:3" aria-labelledby="h-prox">
+    <div class="panel-head"><h2 id="h-prox">Reservas dos próximos 7 dias</h2><a href="{{ url_for('reservas.listar') }}">Ver todas</a></div>
+    {% if proximas_reservas %}
+    <div class="table-wrap"><table class="t two">
+      <thead><tr><th>Quando</th><th>Área</th><th>Unidade</th></tr></thead>
+      <tbody>{% for r in proximas_reservas %}<tr><td><span class="strong">{{ r.data|data_br }}</span><span class="sub">{{ r.inicio.strftime('%H:%M') }}–{{ r.fim.strftime('%H:%M') }}</span></td><td>{{ r.area.nome }}</td><td>{{ r.unidade.identificacao }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="empty">Nenhuma reserva aprovada nos próximos 7 dias.</p>{% endif %}
+  </section>
+  <section class="panel" style="--i:4" aria-labelledby="h-com2">
+    <div class="panel-head"><h2 id="h-com2">Comunicados</h2><a href="{{ url_for('comunicados.listar') }}">Ver todos</a></div>
+    {% if comunicados %}<ul class="feed">{% for c in comunicados %}<li><h3>{% if c.fixado %}{{ pill('info', 'Fixado') }}{% endif %}{{ c.titulo }}</h3><p>{{ c.corpo }}</p><div class="meta">{{ c.autor.nome }} · {{ c.criado_em.strftime('%d/%m/%Y') }}</div></li>{% endfor %}</ul>
+    {% else %}<p class="empty">Nenhum comunicado publicado.</p>{% endif %}
+  </section>
+</div>
+
+{# ============ MORADOR: a unidade dele ============ #}
+{% else %}
+<header class="page-head">
+  <div>
+    <h1>{{ current_user.unidade.identificacao if current_user.unidade else 'Visão geral' }}</h1>
+    <p class="sub">{{ titulo_sub|safe }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-secondary" href="{{ url_for('ocorrencias.nova') }}">Abrir ocorrência</a>
+    <a class="btn btn-primary" href="{{ url_for('reservas.nova') }}">Reservar área</a>
+  </div>
+</header>
+<div class="grid g-7-5 g-top">
+  <section class="panel" style="--i:1" aria-labelledby="h-abertas">
+    <div class="panel-head"><h2 id="h-abertas">Cobranças em aberto</h2><a href="{{ url_for('cobrancas.listar') }}">Ver todas</a></div>
+    {% if abertas %}
+    <div class="table-wrap"><table class="t">
+      <thead><tr><th>Descrição</th><th>Vencimento</th><th>Situação</th><th class="num">Valor</th></tr></thead>
+      <tbody>
+      {% for c in abertas %}
+      <tr><td class="strong">{{ c.descricao }} · {{ c.competencia.strftime('%m/%Y') }}</td><td>{{ c.vencimento|data_br }}</td>
+          <td>{{ pill(c.status_cor, c.status_label) }}</td>
+          <td class="num strong">{{ c.valor_atualizado()|brl }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<p class="empty">Nenhuma cobrança em aberto.</p>{% endif %}
+  </section>
+  <section class="panel" style="--i:2" aria-labelledby="h-enc">
+    <div class="panel-head"><h2 id="h-enc">Encomendas na portaria</h2><a href="{{ url_for('encomendas.listar') }}">Ver todas</a></div>
+    {% if encomendas %}
+    <ul class="feed">{% for e in encomendas %}<li><h3>{{ e.descricao }}</h3><div class="meta">{{ e.remetente or 'Remetente não informado' }} · chegou {{ e.recebida_em.strftime('%d/%m às %H:%M') }}</div></li>{% endfor %}</ul>
+    {% else %}<p class="empty">Nada aguardando retirada.</p>{% endif %}
+  </section>
+</div>
+<div class="grid g-7-5 g-top">
+  <section class="panel" style="--i:3" aria-labelledby="h-res">
+    <div class="panel-head"><h2 id="h-res">Próximas reservas</h2><a href="{{ url_for('reservas.listar') }}">Ver todas</a></div>
+    {% if reservas %}
+    <div class="table-wrap"><table class="t">
+      <thead><tr><th>Área</th><th>Data</th><th>Horário</th><th>Situação</th></tr></thead>
+      <tbody>{% for r in reservas %}<tr><td class="strong">{{ r.area.nome }}</td><td>{{ r.data|data_br }}</td><td>{{ r.inicio.strftime('%H:%M') }}–{{ r.fim.strftime('%H:%M') }}</td><td>{{ pill(r.status_cor, r.status|capitalize) }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="empty">Nenhuma reserva futura.</p>{% endif %}
+  </section>
+  <section class="panel" style="--i:4" aria-labelledby="h-com3">
+    <div class="panel-head"><h2 id="h-com3">Comunicados</h2><a href="{{ url_for('comunicados.listar') }}">Ver todos</a></div>
+    {% if comunicados %}<ul class="feed">{% for c in comunicados %}<li><h3>{% if c.fixado %}{{ pill('info', 'Fixado') }}{% endif %}{{ c.titulo }}</h3><p>{{ c.corpo }}</p><div class="meta">{{ c.autor.nome }} · {{ c.criado_em.strftime('%d/%m/%Y') }}</div></li>{% endfor %}</ul>
+    {% else %}<p class="empty">Nenhum comunicado publicado.</p>{% endif %}
+  </section>
+</div>
+<div class="grid g-7-5 g-top" style="margin-top: var(--gap)">
+  <section class="panel" style="--i:5" aria-labelledby="h-oco">
+    <div class="panel-head"><h2 id="h-oco">Minhas ocorrências</h2><a href="{{ url_for('ocorrencias.listar') }}">Ver todas</a></div>
+    {% if minhas_ocorrencias %}
+    <div class="table-wrap"><table class="t">
+      <thead><tr><th>Ocorrência</th><th>Aberta em</th><th>Situação</th></tr></thead>
+      <tbody>{% for o in minhas_ocorrencias %}<tr><td><a class="strong" href="{{ url_for('ocorrencias.detalhe', id=o.id) }}" style="text-decoration: none">{{ o.titulo }}</a></td><td>{{ o.criada_em.strftime('%d/%m/%Y') }}</td><td>{{ pill(o.status_cor, o.status_label) }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="empty">Você não tem ocorrências registradas.</p>{% endif %}
+  </section>
+  <section class="panel" style="--i:6" aria-labelledby="h-vei">
+    <div class="panel-head"><h2 id="h-vei">Meus veículos</h2><a href="{{ url_for('veiculos.listar') }}">Ver todos</a></div>
+    {% if meus_veiculos %}
+    <div class="table-wrap"><table class="t">
+      <thead><tr><th>Placa</th><th>Veículo</th><th>Vaga</th></tr></thead>
+      <tbody>{% for v in meus_veiculos %}<tr><td class="strong"><span class="mono">{{ v.placa }}</span></td><td>{{ v.tipo_label }}{% if v.modelo %} · {{ v.modelo }}{% endif %}</td><td>{% if v.vaga %}{{ v.vaga }}{% else %}<span class="dash">—</span>{% endif %}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="empty">Nenhum veículo cadastrado para a sua unidade.</p>{% endif %}
+  </section>
+</div>
+{% endif %}
 {% endblock %}

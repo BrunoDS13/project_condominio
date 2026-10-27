@@ -1,15 +1,27 @@
 {% extends "base.html" %}
-{% from "_macros.html" import paginacao %}
+{% from "_macros.html" import paginacao, pill %}
 {% block title %}Ocorrências{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between mb-3"><h1 class="h4">Ocorrências</h1><a class="btn btn-primary" href="{{ url_for('ocorrencias.nova') }}">+ Nova</a></div>
-<div class="table-responsive"><table class="table table-sm table-striped bg-white">
-  <thead><tr><th>Data</th><th>Título</th><th>Categoria</th><th>Autor</th><th>Status</th></tr></thead>
-  {% for o in pag.items %}
-  <tr><td>{{ o.criada_em.strftime('%d/%m/%Y') }}</td><td><a href="{{ url_for('ocorrencias.detalhe', id=o.id) }}">{{ o.titulo }}</a></td>
-      <td>{{ o.categoria_label }}</td><td>{{ o.usuario.nome }}</td>
-      <td><span class="badge text-bg-{{ o.status_cor }}">{{ o.status_label }}</span></td></tr>
-  {% else %}<tr><td colspan="5" class="text-muted">Nenhuma ocorrência.</td></tr>{% endfor %}
-</table></div>
+<header class="page-head">
+  <div><h1>Ocorrências</h1><p class="sub">{{ pag.total }} {{ 'registro' if pag.total == 1 else 'registros' }}</p></div>
+  <div class="actions"><a class="btn btn-primary" href="{{ url_for('ocorrencias.nova') }}">Nova ocorrência</a></div>
+</header>
+<section class="panel" style="--i:1">
+  {% if pag.items %}
+  <div class="table-wrap"><table class="t two">
+    <thead><tr><th>Ocorrência</th><th>Categoria</th><th>Aberta em</th><th>Situação</th></tr></thead>
+    <tbody>
+    {% for o in pag.items %}
+    <tr>
+      <td><a class="strong" href="{{ url_for('ocorrencias.detalhe', id=o.id) }}" style="text-decoration: none">{{ o.titulo }}</a><span class="sub">{{ o.usuario.nome }}{% if o.unidade %} · {{ o.unidade.identificacao }}{% endif %}</span></td>
+      <td>{{ o.categoria_label }}</td>
+      <td>{{ o.criada_em.strftime('%d/%m/%Y') }}</td>
+      <td>{{ pill(o.status_cor, o.status_label) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="empty" style="margin-top: var(--pad)">Nenhuma ocorrência registrada.</p>{% endif %}
+</section>
 {{ paginacao(pag, 'ocorrencias.listar') }}
 {% endblock %}

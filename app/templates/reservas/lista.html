@@ -1,23 +1,37 @@
 {% extends "base.html" %}
-{% from "_macros.html" import paginacao, botao_post %}
+{% from "_macros.html" import paginacao, botao_post, pill %}
 {% block title %}Reservas{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between mb-3"><h1 class="h4">Reservas de áreas comuns</h1><a class="btn btn-primary" href="{{ url_for('reservas.nova') }}">+ Nova</a></div>
-<div class="table-responsive"><table class="table table-sm table-striped bg-white">
-  <thead><tr><th>Data</th><th>Horário</th><th>Área</th><th>Unidade</th><th>Solicitante</th><th>Status</th><th></th></tr></thead>
-  {% for r in pag.items %}
-  <tr><td>{{ r.data|data_br }}</td><td>{{ r.inicio.strftime('%H:%M') }}–{{ r.fim.strftime('%H:%M') }}</td><td>{{ r.area.nome }}</td>
-      <td>{{ r.unidade.identificacao }}</td><td>{{ r.usuario.nome }}</td>
-      <td><span class="badge text-bg-{{ r.status_cor }}">{{ r.status|capitalize }}</span></td>
-      <td class="text-end">
+<header class="page-head">
+  <div><h1>Reservas</h1><p class="sub">{{ pag.total }} {{ 'reserva' if pag.total == 1 else 'reservas' }} de áreas comuns</p></div>
+  <div class="actions"><a class="btn btn-primary" href="{{ url_for('reservas.nova') }}">Nova reserva</a></div>
+</header>
+<section class="panel" style="--i:1">
+  {% if pag.items %}
+  <div class="table-wrap"><table class="t two">
+    <thead><tr><th>Área</th><th>Data</th><th>Horário</th><th>Unidade</th><th>Situação</th><th><span class="visually-hidden">Ações</span></th></tr></thead>
+    <tbody>
+    {% for r in pag.items %}
+    <tr>
+      <td><span class="strong">{{ r.area.nome }}</span><span class="sub">{{ r.usuario.nome }}</span></td>
+      <td>{{ r.data|data_br }}</td>
+      <td>{{ r.inicio.strftime('%H:%M') }}–{{ r.fim.strftime('%H:%M') }}</td>
+      <td>{{ r.unidade.identificacao }}</td>
+      <td>{{ pill(r.status_cor, r.status|capitalize) }}</td>
+      <td class="act">
         {% if current_user.is_gestor and r.status == 'pendente' %}
-          {{ botao_post(url_for('reservas.aprovar', id=r.id), 'Aprovar', 'btn-success') }}
-          {{ botao_post(url_for('reservas.recusar', id=r.id), 'Recusar', 'btn-outline-danger') }}
+          {{ botao_post(url_for('reservas.aprovar', id=r.id), 'Aprovar') }}
+          {{ botao_post(url_for('reservas.recusar', id=r.id), 'Recusar', 'btn-ghost btn-danger') }}
         {% endif %}
         {% if r.status in ('pendente', 'aprovada') and (current_user.is_gestor or r.usuario_id == current_user.id) %}
-          {{ botao_post(url_for('reservas.cancelar', id=r.id), 'Cancelar', 'btn-outline-secondary', 'Cancelar esta reserva?') }}
-        {% endif %}</td></tr>
-  {% else %}<tr><td colspan="7" class="text-muted">Nenhuma reserva.</td></tr>{% endfor %}
-</table></div>
+          {{ botao_post(url_for('reservas.cancelar', id=r.id), 'Cancelar', 'btn-ghost', 'Cancelar esta reserva?') }}
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="empty" style="margin-top: var(--pad)">Nenhuma reserva.</p>{% endif %}
+</section>
 {{ paginacao(pag, 'reservas.listar') }}
 {% endblock %}

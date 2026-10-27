@@ -1,15 +1,28 @@
 {% extends "base.html" %}
-{% from "_macros.html" import paginacao %}
+{% from "_macros.html" import paginacao, pill %}
 {% block title %}Usuários{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between mb-3"><h1 class="h4">Usuários</h1><a class="btn btn-primary" href="{{ url_for('usuarios.novo') }}">+ Novo</a></div>
-<div class="table-responsive"><table class="table table-sm table-striped bg-white">
-  <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Unidade</th><th>Status</th><th></th></tr></thead>
-  {% for u in pag.items %}
-  <tr><td>{{ u.nome }}</td><td>{{ u.email }}</td><td>{{ u.role_label }}</td>
-      <td>{{ u.unidade.identificacao if u.unidade else '—' }}</td><td>{{ 'Ativo' if u.ativo else 'Inativo' }}</td>
-      <td><a href="{{ url_for('usuarios.editar', id=u.id) }}">Editar</a></td></tr>
-  {% endfor %}
-</table></div>
+<header class="page-head">
+  <div><h1>Usuários</h1><p class="sub">{{ pag.total }} {{ 'usuário' if pag.total == 1 else 'usuários' }}</p></div>
+  <div class="actions"><a class="btn btn-primary" href="{{ url_for('usuarios.novo') }}">Novo usuário</a></div>
+</header>
+<section class="panel" style="--i:1">
+  {% if pag.items %}
+  <div class="table-wrap"><table class="t two">
+    <thead><tr><th>Nome</th><th>Perfil</th><th>Unidade</th><th>Situação</th><th><span class="visually-hidden">Ação</span></th></tr></thead>
+    <tbody>
+    {% for u in pag.items %}
+    <tr>
+      <td><span class="strong">{{ u.nome }}</span><span class="sub">{{ u.email }}</span></td>
+      <td>{{ u.role_label }}</td>
+      <td>{% if u.unidade %}{{ u.unidade.identificacao }}{% else %}<span class="dash">—</span>{% endif %}</td>
+      <td>{{ pill('success' if u.ativo else 'secondary', 'Ativo' if u.ativo else 'Inativo') }}</td>
+      <td class="act"><a class="btn btn-sm btn-ghost" href="{{ url_for('usuarios.editar', id=u.id) }}">Editar</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="empty" style="margin-top: var(--pad)">Nenhum usuário.</p>{% endif %}
+</section>
 {{ paginacao(pag, 'usuarios.listar') }}
 {% endblock %}

@@ -1,18 +1,39 @@
+{# ícones de contorno, 16px, traço 1.5 #}
+{% macro ico(nome) %}<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if nome == 'home' %}<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>
+{%- elif nome == 'megafone' %}<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>
+{%- elif nome == 'alerta' %}<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/>
+{%- elif nome == 'recibo' %}<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>
+{%- elif nome == 'barras' %}<path d="M5 20v-6M12 20V6M19 20v-9"/>
+{%- elif nome == 'calendario' %}<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>
+{%- elif nome == 'entrada' %}<path d="M15 3h4a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3"/>
+{%- elif nome == 'pacote' %}<path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/>
+{%- elif nome == 'carro' %}<path d="M3 13l2-6h14l2 6v5H3zM3 13h18M7 18v2M17 18v2"/>
+{%- elif nome == 'predio' %}<path d="M5 21V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v17M15 9h4a1 1 0 0 1 1 1v11M3 21h18M9 7h2M9 11h2M9 15h2"/>
+{%- elif nome == 'usuarios' %}<path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20M10 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35M16 4.7a3.5 3.5 0 0 1 0 6.6"/>
+{%- elif nome == 'chevron' %}<path d="m9 6 6 6-6 6"/>
+{%- elif nome == 'predio-marca' %}<path d="M6 20V6.5L12 4l6 2.5V20M9.5 9h1M13.5 9h1M9.5 12.5h1M13.5 12.5h1M10.5 20v-3h3v3"/>
+{%- endif -%}
+</svg>{% endmacro %}
+
+{# pílula de status: aceita a "cor" do modelo (danger, warning, success, secondary, primary) #}
+{% macro pill(cor, texto) %}<span class="pill pill-{{ {'danger': 'bad', 'warning': 'warn', 'success': 'ok', 'secondary': 'neutral', 'primary': 'info'}.get(cor, cor) }}">{{ texto }}</span>{% endmacro %}
+
 {% macro campo(f, ac='off') %}
   {% if f.type == 'BooleanField' %}
-    <div class="form-check mb-3">{{ f(class="form-check-input") }} <label class="form-check-label" for="{{ f.id }}">{{ f.label.text }}</label></div>
+    <label class="check">{{ f() }}<span>{{ f.label.text }}</span></label>
   {% else %}
     {% set sem_corretor = f.name in ('email', 'placa', 'senha', 'atual', 'nova', 'confirma', 'documento') %}
-    <div class="mb-3">
-      {{ f.label(class="form-label") }}
-      {% if f.type in ('SelectField',) %}
-        {{ f(class="form-select" ~ (" is-invalid" if f.errors else ""), autocomplete=ac) }}
+    <div class="field">
+      {{ f.label(class="label") }}
+      {% if f.type == 'SelectField' %}
+        {{ f(class="input", autocomplete=ac, **{'aria-invalid': 'true' if f.errors else 'false'}) }}
       {% elif f.type == 'TextAreaField' %}
-        {{ f(class="form-control" ~ (" is-invalid" if f.errors else ""), rows=5, autocomplete=ac) }}
+        {{ f(class="input", rows=5, autocomplete=ac, **{'aria-invalid': 'true' if f.errors else 'false'}) }}
       {% else %}
-        {{ f(class="form-control" ~ (" is-invalid" if f.errors else ""), autocomplete=ac, spellcheck=('false' if sem_corretor else 'true')) }}
+        {{ f(class="input", autocomplete=ac, spellcheck=('false' if sem_corretor else 'true'), **{'aria-invalid': 'true' if f.errors else 'false'}) }}
       {% endif %}
-      {% for e in f.errors %}<div class="text-danger small" role="alert">{{ e }}</div>{% endfor %}
+      {% for e in f.errors %}<p class="err" role="alert">{{ e }}</p>{% endfor %}
     </div>
   {% endif %}
 {% endmacro %}
@@ -26,23 +47,28 @@
   <form method="post" enctype="multipart/form-data" novalidate>
     {{ form.hidden_tag() }}
     {% for f in form if f.type not in ('CSRFTokenField', 'HiddenField') %}{{ campo(f, mapa.get(f.name, 'off')) }}{% endfor %}
-    <button type="submit" class="btn btn-primary">{{ enviar }}</button>
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{{ enviar }}</button></div>
   </form>
 {% endmacro %}
 
 {% macro paginacao(pag, endpoint) %}
-  {% if pag.pages > 1 %}
-  <nav aria-label="Paginação"><ul class="pagination pagination-sm">
-    {% for p in pag.iter_pages() %}
-      {% if p %}<li class="page-item {{ 'active' if p == pag.page }}"><a class="page-link" href="{{ url_for(endpoint, page=p, **kwargs) }}"{% if p == pag.page %} aria-current="page"{% endif %}>{{ p }}</a></li>
-      {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
-    {% endfor %}
-  </ul></nav>
+  {% if pag.total %}
+  <div class="pager">
+    <span>{{ pag.first }}–{{ pag.last }} de {{ pag.total }}</span>
+    {% if pag.pages > 1 %}
+    <nav aria-label="Paginação">
+      {% for p in pag.iter_pages() %}
+        {% if p %}<a href="{{ url_for(endpoint, page=p, **kwargs) }}"{% if p == pag.page %} aria-current="page"{% endif %}>{{ p }}</a>
+        {% else %}<span class="gap">…</span>{% endif %}
+      {% endfor %}
+    </nav>
+    {% endif %}
+  </div>
   {% endif %}
 {% endmacro %}
 
-{% macro botao_post(url, texto, classe="btn-outline-secondary", confirmar=None) %}
-  <form method="post" action="{{ url }}" class="d-inline" {% if confirmar %}onsubmit="return confirm('{{ confirmar }}')"{% endif %}>
+{% macro botao_post(url, texto, classe="btn-secondary", confirmar=None) %}
+  <form method="post" action="{{ url }}" class="inline" {% if confirmar %}onsubmit="return confirm('{{ confirmar }}')"{% endif %}>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="btn btn-sm {{ classe }}">{{ texto }}</button>
   </form>

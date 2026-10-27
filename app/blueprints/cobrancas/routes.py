@@ -43,14 +43,19 @@ def listar():
     page = request.args.get("page", 1, type=int)
     status = request.args.get("status", "")
     q = db.select(Cobranca).order_by(Cobranca.vencimento.desc(), Cobranca.id.desc())
+    unidade = None
     if not current_user.is_gestor:
         q = q.where(Cobranca.unidade_id == current_user.unidade_id)
+    elif request.args.get("unidade", type=int):
+        unidade = db.session.get(Unidade, request.args.get("unidade", type=int))
+        if unidade:
+            q = q.where(Cobranca.unidade_id == unidade.id)
     if status == "atrasada":
         q = q.where(Cobranca.status == StatusCobranca.PENDENTE, Cobranca.vencimento < date.today())
     elif status in dict(StatusCobranca.CHOICES):
         q = q.where(Cobranca.status == status)
     pag = db.paginate(q, page=page, per_page=current_app.config["ITENS_POR_PAGINA"])
-    return render_template("cobrancas/lista.html", pag=pag, status=status)
+    return render_template("cobrancas/lista.html", pag=pag, status=status, unidade=unidade)
 
 
 @bp.route("/nova", methods=["GET", "POST"])

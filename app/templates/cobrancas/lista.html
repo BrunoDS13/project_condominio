@@ -1,28 +1,50 @@
 {% extends "base.html" %}
-{% from "_macros.html" import paginacao, botao_post %}
+{% from "_macros.html" import paginacao, botao_post, pill %}
 {% block title %}Cobranças{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between mb-3">
-  <h1 class="h4">Cobranças</h1>
-  {% if current_user.is_gestor %}<div><a class="btn btn-outline-danger" href="{{ url_for('cobrancas.inadimplencia') }}">Inadimplência</a>
-  <a class="btn btn-outline-primary" href="{{ url_for('cobrancas.lote') }}">Gerar em lote</a>
-  <a class="btn btn-primary" href="{{ url_for('cobrancas.nova') }}">+ Nova</a></div>{% endif %}
-</div>
-<div class="btn-group btn-group-sm mb-3">
+<header class="page-head">
+  <div>
+    <h1>Cobranças</h1>
+    <p class="sub">{{ pag.total }} {{ 'cobrança' if pag.total == 1 else 'cobranças' }}{% if unidade %} da unidade {{ unidade.identificacao }}{% endif %}</p>
+  </div>
+  {% if current_user.is_gestor %}
+  <div class="actions">
+    <a class="btn btn-secondary" href="{{ url_for('cobrancas.inadimplencia') }}">Inadimplência</a>
+    <a class="btn btn-secondary" href="{{ url_for('cobrancas.lote') }}">Gerar em lote</a>
+    <a class="btn btn-primary" href="{{ url_for('cobrancas.nova') }}">Nova cobrança</a>
+  </div>
+  {% endif %}
+</header>
+
+<nav class="tabs" style="--i:0" aria-label="Filtrar por situação">
   {% for v, t in [('', 'Todas'), ('pendente', 'Pendentes'), ('atrasada', 'Atrasadas'), ('paga', 'Pagas'), ('cancelada', 'Canceladas')] %}
-  <a class="btn btn-outline-secondary {{ 'active' if status == v }}" href="{{ url_for('cobrancas.listar', status=v) }}">{{ t }}</a>{% endfor %}
-</div>
-<div class="table-responsive"><table class="table table-sm table-striped bg-white">
-  <thead><tr><th>Unidade</th><th>Descrição</th><th>Competência</th><th>Vencimento</th><th class="text-end">Valor</th><th class="text-end">Atualizado</th><th>Status</th><th></th></tr></thead>
-  {% for c in pag.items %}
-  <tr><td>{{ c.unidade.identificacao }}</td><td>{{ c.descricao }}</td><td>{{ c.competencia.strftime('%m/%Y') }}</td>
-      <td>{{ c.vencimento|data_br }}</td><td class="text-end">{{ c.valor|brl }}</td>
-      <td class="text-end">{% if c.status == 'paga' %}{{ (c.valor_pago or c.valor)|brl }}{% elif c.atrasada %}<span class="text-danger" title="Multa {{ c.multa()|brl }} + juros {{ c.juros()|brl }} ({{ c.dias_atraso() }} dias)">{{ c.valor_atualizado()|brl }}</span>{% else %}—{% endif %}</td>
-      <td><span class="badge text-bg-{{ c.status_cor }}">{{ c.status_label }}</span></td>
-      <td class="text-end">{% if current_user.is_gestor and c.status == 'pendente' %}
-        {{ botao_post(url_for('cobrancas.pagar', id=c.id), 'Dar baixa', 'btn-success') }}
-        {{ botao_post(url_for('cobrancas.cancelar', id=c.id), 'Cancelar', 'btn-outline-danger', 'Cancelar esta cobrança?') }}{% endif %}</td></tr>
-  {% else %}<tr><td colspan="8" class="text-muted">Nenhuma cobrança.</td></tr>{% endfor %}
-</table></div>
-{{ paginacao(pag, 'cobrancas.listar', status=status) }}
+  <a href="{{ url_for('cobrancas.listar', status=v, unidade=unidade.id if unidade) }}"{% if status == v %} aria-current="page"{% endif %}>{{ t }}</a>
+  {% endfor %}
+</nav>
+{% if unidade %}<div class="chip">Unidade {{ unidade.identificacao }} <a href="{{ url_for('cobrancas.listar', status=status) }}" aria-label="Remover filtro de unidade">×</a></div>{% endif %}
+
+<section class="panel" style="--i:1">
+  {% if pag.items %}
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Unidade</th><th>Descrição</th><th>Competência</th><th>Vencimento</th><th class="num">Valor</th><th class="num">Atualizado</th><th>Situação</th><th><span class="visually-hidden">Ações</span></th></tr></thead>
+    <tbody>
+    {% for c in pag.items %}
+    <tr>
+      <td class="strong">{{ c.unidade.identificacao }}</td>
+      <td>{{ c.descricao }}</td>
+      <td>{{ c.competencia.strftime('%m/%Y') }}</td>
+      <td>{{ c.vencimento|data_br }}</td>
+      <td class="num">{{ c.valor|brl }}</td>
+      <td class="num">{% if c.status == 'paga' %}{{ (c.valor_pago or c.valor)|brl }}{% elif c.atrasada %}<span class="strong" title="Multa {{ c.multa()|brl }} + juros {{ c.juros()|brl }} ({{ c.dias_atraso() }} dias)">{{ c.valor_atualizado()|brl }}</span>{% else %}<span class="dash">—</span>{% endif %}</td>
+      <td>{{ pill(c.status_cor, c.status_label) }}</td>
+      <td class="act">{% if current_user.is_gestor and c.status == 'pendente' %}
+        {{ botao_post(url_for('cobrancas.pagar', id=c.id), 'Dar baixa') }}
+        {{ botao_post(url_for('cobrancas.cancelar', id=c.id), 'Cancelar', 'btn-ghost btn-danger', 'Cancelar esta cobrança?') }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="empty" style="margin-top: var(--pad)">Nenhuma cobrança nesta visão.</p>{% endif %}
+</section>
+{{ paginacao(pag, 'cobrancas.listar', status=status, unidade=unidade.id if unidade else None) }}
 {% endblock %}

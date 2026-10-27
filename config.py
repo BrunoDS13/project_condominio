@@ -13,6 +13,7 @@ class Config:
         "DATABASE_URL", "sqlite:///" + os.path.join(basedir, "instance", "condominio.db")
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    CONDOMINIO_NOME = os.environ.get("CONDOMINIO_NOME", "Residencial Acácias")
     ITENS_POR_PAGINA = 15
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # comprovantes: até 5 MB
     # Encargos por atraso (padrão legal: multa de até 2% + juros de 1% a.m. pro rata die)
