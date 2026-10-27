@@ -1,4 +1,3 @@
-import random
 from datetime import date, time, timedelta
 from decimal import Decimal
 
@@ -49,15 +48,19 @@ def register_cli(app):
         db.session.flush()
 
         hoje = date.today()
+        # Poucas unidades devedoras, como num prédio real: 3 com meses antigos em aberto e 2 só com o mês atual.
+        devedoras_antigas = {unidades[2].id: 2, unidades[5].id: 1, unidades[11].id: 3}  # unidade -> meses em atraso
+        mes_atual_aberto = {unidades[7].id, unidades[13].id}
         for i in range(3):
             comp = primeiro_dia_mes((hoje.replace(day=1) - timedelta(days=30 * (2 - i))))
             for u in unidades:
                 venc = comp.replace(day=10)
-                pago = i < 2 and random.random() > 0.2
+                meses_atras = devedoras_antigas.get(u.id, 0)
+                aberta = (i >= 3 - meses_atras) or (i == 2 and u.id in mes_atual_aberto and venc < hoje)
                 db.session.add(Cobranca(
                     unidade=u, competencia=comp, valor=Decimal("450.00"), vencimento=venc,
-                    status=StatusCobranca.PAGA if pago else StatusCobranca.PENDENTE,
-                    pago_em=venc if pago else None, valor_pago=Decimal("450.00") if pago else None))
+                    status=StatusCobranca.PENDENTE if aberta else StatusCobranca.PAGA,
+                    pago_em=None if aberta else venc, valor_pago=None if aberta else Decimal("450.00")))
         db.session.add(Reserva(area=churras, unidade=unidades[0], usuario=morador,
                                data=hoje + timedelta(days=7), inicio=time(18), fim=time(23),
                                status=StatusReserva.PENDENTE))
