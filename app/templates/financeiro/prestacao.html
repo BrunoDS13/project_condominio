@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "_macros.html" import botao_post %}
+{% set meses_pt = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'] %}
+{% block title %}Prestação de contas{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div>
+    <h1 class="mb-0">Prestação de contas</h1>
+    <div class="text-muted">{{ meses_pt[mes]|capitalize }} de {{ ano }}</div>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <form method="get" class="d-flex gap-2 align-items-center">
+      <label for="mes" class="visually-hidden">Mês</label>
+      <input type="month" id="mes" name="mes" value="{{ mes_str }}" class="form-control form-control-sm" style="width: 10.5rem">
+      <button type="submit" class="btn btn-sm btn-outline-secondary">Ver</button>
+    </form>
+    {% if current_user.is_gestor %}
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('financeiro.novo_aporte') }}">Aporte ao fundo</a>
+    <a class="btn btn-sm btn-primary" href="{{ url_for('financeiro.nova_despesa') }}">+ Despesa</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="metrics mb-4">
+  <div class="metric"><div class="metric-label">Receitas do mês</div><div class="metric-value">{{ resumo.receitas|brl }}</div></div>
+  <div class="metric"><div class="metric-label">Despesas do mês</div><div class="metric-value">{{ resumo.despesas|brl }}</div></div>
+  <div class="metric"><div class="metric-label">Resultado do mês</div><div class="metric-value {{ 'bad' if resumo.saldo_mes < 0 }}">{{ resumo.saldo_mes|brl }}</div></div>
+  <div class="metric"><div class="metric-label">Saldo em caixa</div><div class="metric-value {{ 'bad' if resumo.saldo_caixa < 0 }}">{{ resumo.saldo_caixa|brl }}</div></div>
+  <div class="metric"><div class="metric-label">Fundo de reserva</div><div class="metric-value">{{ resumo.reserva|brl }}</div></div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-xl-5">
+    <section class="panel" aria-labelledby="h-cat">
+      <div class="panel-head"><h2 id="h-cat">Despesas por categoria</h2></div>
+      {% if categorias %}
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Categoria</th><th class="text-end">Valor</th><th class="text-end">%</th></tr></thead>
+        {% for c in categorias %}<tr><td>{{ c.nome }}</td><td class="text-end">{{ c.valor|brl }}</td><td class="text-end">{{ '%.0f'|format(c.pct) }}%</td></tr>{% endfor %}
+      </table></div>
+      {% else %}<div class="empty">Nenhuma despesa neste mês.</div>{% endif %}
+    </section>
+  </div>
+  <div class="col-xl-7">
+    <section class="panel" aria-labelledby="h-fluxo">
+      <div class="panel-head"><h2 id="h-fluxo">Fluxo de caixa · 12 meses</h2></div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Mês</th><th class="text-end">Receitas</th><th class="text-end">Despesas</th><th class="text-end">Aportes</th><th class="text-end">Resultado</th><th class="text-end">Saldo</th></tr></thead>
+        {% for f in fluxo %}
+        <tr><td><a href="{{ url_for('financeiro.prestacao', mes='%04d-%02d'|format(f.ano, f.mes)) }}">{{ '%02d/%d'|format(f.mes, f.ano) }}</a></td>
+            <td class="text-end">{{ f.receitas|brl }}</td><td class="text-end">{{ f.despesas|brl }}</td><td class="text-end">{{ f.aportes|brl }}</td>
+            <td class="text-end {{ 'text-danger' if f.saldo_mes < 0 }}">{{ f.saldo_mes|brl }}</td><td class="text-end {{ 'text-danger' if f.saldo_caixa < 0 }}">{{ f.saldo_caixa|brl }}</td></tr>
+        {% endfor %}
+      </table></div>
+    </section>
+  </div>
+</div>
+
+<section class="panel mb-4" aria-labelledby="h-desp">
+  <div class="panel-head"><h2 id="h-desp">Lançamentos do mês</h2></div>
+  {% if despesas %}
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Fornecedor</th><th>Pago com</th><th class="text-end">Valor</th><th>Comprovante</th><th></th></tr></thead>
+    {% for d in despesas %}
+    <tr><td>{{ d.data|data_br }}</td><td>{{ d.categoria_label }}</td><td>{{ d.descricao }}</td><td>{{ d.fornecedor or '—' }}</td>
+        <td>{% if d.fonte == 'reserva' %}<span class="badge text-bg-primary">Fundo de reserva</span>{% else %}Caixa{% endif %}</td>
+        <td class="text-end">{{ d.valor|brl }}</td>
+        <td>{% if d.comprovante %}<a href="{{ url_for('financeiro.comprovante', id=d.id) }}" target="_blank" rel="noopener">Abrir</a>{% else %}—{% endif %}</td>
+        <td class="text-end">{% if current_user.is_gestor %}{{ botao_post(url_for('financeiro.excluir_despesa', id=d.id), 'Excluir', 'btn-outline-danger', 'Excluir esta despesa e o comprovante?') }}{% endif %}</td></tr>
+    {% endfor %}
+  </table></div>
+  {% else %}<div class="empty">Nenhum lançamento neste mês.</div>{% endif %}
+</section>
+
+{% if aportes %}
+<section class="panel" aria-labelledby="h-ap">
+  <div class="panel-head"><h2 id="h-ap">Aportes ao fundo de reserva</h2></div>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>Data</th><th>Descrição</th><th class="text-end">Valor</th></tr></thead>
+    {% for a in aportes %}<tr><td>{{ a.data|data_br }}</td><td>{{ a.descricao }}</td><td class="text-end">{{ a.valor|brl }}</td></tr>{% endfor %}
+  </table></div>
+</section>
+{% endif %}
+<p class="text-muted small mt-3">Receitas = cobranças com baixa registrada no mês. O saldo em caixa soma tudo o que foi recebido desde o início dos registros, sem saldo inicial anterior ao sistema.</p>
+{% endblock %}

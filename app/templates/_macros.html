@@ -23,7 +23,7 @@
     'TrocarSenhaForm': {'atual': 'current-password', 'nova': 'new-password', 'confirma': 'new-password'}
   } %}
   {% set mapa = mapas.get(form.__class__.__name__, {}) %}
-  <form method="post" novalidate>
+  <form method="post" enctype="multipart/form-data" novalidate>
     {{ form.hidden_tag() }}
     {% for f in form if f.type not in ('CSRFTokenField', 'HiddenField') %}{{ campo(f, mapa.get(f.name, 'off')) }}{% endfor %}
     <button type="submit" class="btn btn-primary">{{ enviar }}</button>
