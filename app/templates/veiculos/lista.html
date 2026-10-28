@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros.html" import paginacao %}
+{% block title %}Veículos{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3"><h1 class="h4">Veículos e vagas</h1>
+{% if current_user.role in ('admin', 'sindico', 'porteiro') %}<a class="btn btn-primary" href="{{ url_for('veiculos.novo') }}">+ Novo</a>{% endif %}</div>
+<form class="row g-2 mb-3" method="get"><div class="col-auto"><input class="form-control form-control-sm" name="placa" value="{{ busca }}" placeholder="Buscar placa"></div>
+<div class="col-auto"><button class="btn btn-sm btn-outline-secondary">Buscar</button></div></form>
+<table class="table table-sm table-striped bg-white">
+  <thead><tr><th>Placa</th><th>Tipo</th><th>Modelo</th><th>Cor</th><th>Unidade</th><th>Vaga</th><th>Status</th><th></th></tr></thead>
+  {% for v in pag.items %}
+  <tr><td><strong>{{ v.placa }}</strong></td><td>{{ v.tipo_label }}</td><td>{{ v.modelo or '—' }}</td><td>{{ v.cor or '—' }}</td>
+      <td>{{ v.unidade.identificacao }}</td><td>{{ v.vaga or '—' }}</td><td>{{ 'Ativo' if v.ativo else 'Inativo' }}</td>
+      <td>{% if current_user.role in ('admin', 'sindico', 'porteiro') %}<a href="{{ url_for('veiculos.editar', id=v.id) }}">Editar</a>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="8" class="text-muted">Nenhum veículo.</td></tr>{% endfor %}
+</table>
+{{ paginacao(pag, 'veiculos.listar', placa=busca) }}
+{% endblock %}
