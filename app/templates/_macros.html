@@ -1,0 +1,37 @@
+{% macro campo(f) %}
+  {% if f.type == 'BooleanField' %}
+    <div class="form-check mb-3">{{ f(class="form-check-input") }} <label class="form-check-label" for="{{ f.id }}">{{ f.label.text }}</label></div>
+  {% else %}
+    <div class="mb-3">
+      {{ f.label(class="form-label") }}
+      {{ f(class="form-select" if f.type in ('SelectField',) else "form-control" ~ (" is-invalid" if f.errors else "")) }}
+      {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{% macro form_completo(form, enviar="Salvar") %}
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {% for f in form if f.type not in ('CSRFTokenField', 'HiddenField') %}{{ campo(f) }}{% endfor %}
+    <button class="btn btn-primary">{{ enviar }}</button>
+  </form>
+{% endmacro %}
+
+{% macro paginacao(pag, endpoint) %}
+  {% if pag.pages > 1 %}
+  <nav><ul class="pagination pagination-sm">
+    {% for p in pag.iter_pages() %}
+      {% if p %}<li class="page-item {{ 'active' if p == pag.page }}"><a class="page-link" href="{{ url_for(endpoint, page=p, **kwargs) }}">{{ p }}</a></li>
+      {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+    {% endfor %}
+  </ul></nav>
+  {% endif %}
+{% endmacro %}
+
+{% macro botao_post(url, texto, classe="btn-outline-secondary", confirmar=None) %}
+  <form method="post" action="{{ url }}" class="d-inline" {% if confirmar %}onsubmit="return confirm('{{ confirmar }}')"{% endif %}>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-sm {{ classe }}">{{ texto }}</button>
+  </form>
+{% endmacro %}

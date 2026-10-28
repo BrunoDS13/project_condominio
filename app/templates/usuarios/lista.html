@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_macros.html" import paginacao %}
+{% block title %}Usuários{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3"><h1 class="h4">Usuários</h1><a class="btn btn-primary" href="{{ url_for('usuarios.novo') }}">+ Novo</a></div>
+<table class="table table-sm table-striped bg-white">
+  <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Unidade</th><th>Status</th><th></th></tr></thead>
+  {% for u in pag.items %}
+  <tr><td>{{ u.nome }}</td><td>{{ u.email }}</td><td>{{ u.role_label }}</td>
+      <td>{{ u.unidade.identificacao if u.unidade else '—' }}</td><td>{{ 'Ativo' if u.ativo else 'Inativo' }}</td>
+      <td><a href="{{ url_for('usuarios.editar', id=u.id) }}">Editar</a></td></tr>
+  {% endfor %}
+</table>
+{{ paginacao(pag, 'usuarios.listar') }}
+{% endblock %}

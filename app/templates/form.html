@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% from "_macros.html" import form_completo %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-6">
+  <h1 class="h4 mb-3">{{ titulo }}</h1>
+  <div class="card card-body">{{ form_completo(form) }}</div>
+  <a class="d-block mt-3" href="{{ voltar }}">← Voltar</a>
+</div></div>
+{% endblock %}
