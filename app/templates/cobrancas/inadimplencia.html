@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Inadimplência{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <h1 class="h4">Inadimplência</h1>
+  <div><a class="btn btn-outline-secondary" href="{{ url_for('cobrancas.listar') }}">← Cobranças</a>
+  <a class="btn btn-outline-primary" href="{{ url_for('cobrancas.inadimplencia', formato='csv') }}">Exportar CSV</a></div>
+</div>
+<p class="text-muted small">Encargos calculados até hoje: multa de {{ config.MULTA_PERCENTUAL }}% + juros de {{ config.JUROS_MENSAL_PERCENTUAL }}% ao mês (pro rata por dia).</p>
+
+<div class="row g-3 mb-4">
+  {% for rotulo, valor in [('Unidades inadimplentes', unidades|length), ('Cobranças em atraso', totais.qtd), ('Principal', totais.principal|brl), ('Multa + juros', (totais.multa + totais.juros)|brl), ('Total a receber', totais.total|brl)] %}
+  <div class="col-6 col-lg"><div class="card h-100"><div class="card-body"><div class="text-muted small">{{ rotulo }}</div><div class="fs-5 fw-semibold">{{ valor }}</div></div></div></div>
+  {% endfor %}
+</div>
+
+<h2 class="h5">Por unidade</h2>
+<table class="table table-sm table-striped bg-white mb-4">
+  <thead><tr><th>Unidade</th><th class="text-end">Em atraso</th><th class="text-end">Principal</th><th class="text-end">Multa</th><th class="text-end">Juros</th><th class="text-end">Total</th><th class="text-end">Maior atraso</th></tr></thead>
+  {% for u in unidades %}
+  <tr><td>{{ u.unidade.identificacao }}</td><td class="text-end">{{ u.qtd }}</td><td class="text-end">{{ u.principal|brl }}</td>
+      <td class="text-end">{{ u.multa|brl }}</td><td class="text-end">{{ u.juros|brl }}</td>
+      <td class="text-end fw-semibold">{{ u.total|brl }}</td><td class="text-end">{{ u.max_atraso }} dias</td></tr>
+  {% else %}<tr><td colspan="7" class="text-muted">Nenhuma unidade inadimplente. 🎉</td></tr>{% endfor %}
+</table>
+
+<h2 class="h5">Por competência</h2>
+<table class="table table-sm table-striped bg-white">
+  <thead><tr><th>Mês</th><th class="text-end">Emitido</th><th class="text-end">Recebido</th><th class="text-end">Em atraso</th><th class="text-end">% inadimplência</th></tr></thead>
+  {% for m in meses %}
+  <tr><td>{{ m.competencia.strftime('%m/%Y') }}</td><td class="text-end">{{ m.emitido|brl }}</td><td class="text-end">{{ m.recebido|brl }}</td>
+      <td class="text-end">{{ m.atrasado|brl }}</td><td class="text-end">{{ '%.1f'|format(m.pct) }}%</td></tr>
+  {% else %}<tr><td colspan="5" class="text-muted">Sem dados.</td></tr>{% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import paginacao, botao_post %}
+{% block title %}Reservas{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3"><h1 class="h4">Reservas de áreas comuns</h1><a class="btn btn-primary" href="{{ url_for('reservas.nova') }}">+ Nova</a></div>
+<table class="table table-sm table-striped bg-white">
+  <thead><tr><th>Data</th><th>Horário</th><th>Área</th><th>Unidade</th><th>Solicitante</th><th>Status</th><th></th></tr></thead>
+  {% for r in pag.items %}
+  <tr><td>{{ r.data|data_br }}</td><td>{{ r.inicio.strftime('%H:%M') }}–{{ r.fim.strftime('%H:%M') }}</td><td>{{ r.area.nome }}</td>
+      <td>{{ r.unidade.identificacao }}</td><td>{{ r.usuario.nome }}</td>
+      <td><span class="badge text-bg-{{ r.status_cor }}">{{ r.status|capitalize }}</span></td>
+      <td class="text-end">
+        {% if current_user.is_gestor and r.status == 'pendente' %}
+          {{ botao_post(url_for('reservas.aprovar', id=r.id), 'Aprovar', 'btn-success') }}
+          {{ botao_post(url_for('reservas.recusar', id=r.id), 'Recusar', 'btn-outline-danger') }}
+        {% endif %}
+        {% if r.status in ('pendente', 'aprovada') and (current_user.is_gestor or r.usuario_id == current_user.id) %}
+          {{ botao_post(url_for('reservas.cancelar', id=r.id), 'Cancelar', 'btn-outline-secondary', 'Cancelar esta reserva?') }}
+        {% endif %}</td></tr>
+  {% else %}<tr><td colspan="7" class="text-muted">Nenhuma reserva.</td></tr>{% endfor %}
+</table>
+{{ paginacao(pag, 'reservas.listar') }}
+{% endblock %}

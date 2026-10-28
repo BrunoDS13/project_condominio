@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "_macros.html" import form_completo %}
+{% block title %}{{ o.titulo }}{% endblock %}
+{% block content %}
+<div class="row"><div class="col-lg-8">
+  <h1 class="h4">{{ o.titulo }} <span class="badge text-bg-{{ o.status_cor }}">{{ o.status_label }}</span></h1>
+  <p class="text-muted small">{{ o.categoria_label }} · {{ o.usuario.nome }}{% if o.unidade %} ({{ o.unidade.identificacao }}){% endif %} · {{ o.criada_em.strftime('%d/%m/%Y %H:%M') }}</p>
+  <div class="card card-body mb-3" style="white-space: pre-wrap">{{ o.descricao }}</div>
+  {% if o.resposta %}<div class="card card-body border-primary mb-3"><strong>Resposta da administração</strong><div style="white-space: pre-wrap">{{ o.resposta }}</div></div>{% endif %}
+  {% if form %}<div class="card card-body">{{ form_completo(form, "Atualizar") }}</div>{% endif %}
+  <a class="d-block mt-3" href="{{ url_for('ocorrencias.listar') }}">← Voltar</a>
+</div></div>
+{% endblock %}
