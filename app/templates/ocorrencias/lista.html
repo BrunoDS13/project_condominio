@@ -3,13 +3,13 @@
 {% block title %}Ocorrências{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between mb-3"><h1 class="h4">Ocorrências</h1><a class="btn btn-primary" href="{{ url_for('ocorrencias.nova') }}">+ Nova</a></div>
-<table class="table table-sm table-striped bg-white">
+<div class="table-responsive"><table class="table table-sm table-striped bg-white">
   <thead><tr><th>Data</th><th>Título</th><th>Categoria</th><th>Autor</th><th>Status</th></tr></thead>
   {% for o in pag.items %}
   <tr><td>{{ o.criada_em.strftime('%d/%m/%Y') }}</td><td><a href="{{ url_for('ocorrencias.detalhe', id=o.id) }}">{{ o.titulo }}</a></td>
       <td>{{ o.categoria_label }}</td><td>{{ o.usuario.nome }}</td>
       <td><span class="badge text-bg-{{ o.status_cor }}">{{ o.status_label }}</span></td></tr>
   {% else %}<tr><td colspan="5" class="text-muted">Nenhuma ocorrência.</td></tr>{% endfor %}
-</table>
+</table></div>
 {{ paginacao(pag, 'ocorrencias.listar') }}
 {% endblock %}

@@ -39,4 +39,5 @@ def dashboard():
         encom = encom.where(Encomenda.unidade_id == current_user.unidade_id)
     stats["visitantes"] = db.session.scalar(visitas)
     stats["encomendas"] = db.session.scalar(encom)
-    return render_template("dashboard.html", stats=stats, comunicados=comunicados, hoje=date.today())
+    em_atraso = sorted((c for c in pendentes if c.atrasada), key=lambda c: c.vencimento)[:5]
+    return render_template("dashboard.html", stats=stats, em_atraso=em_atraso, comunicados=comunicados, hoje=date.today())

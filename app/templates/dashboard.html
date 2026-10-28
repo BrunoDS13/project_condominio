@@ -1,28 +1,45 @@
 {% extends "base.html" %}
-{% block title %}Painel{% endblock %}
+{% block title %}Visão geral{% endblock %}
 {% block content %}
-<h1 class="h4 mb-3">Olá, {{ current_user.nome.split()[0] }}</h1>
-<div class="row g-3 mb-4">
-  {% for rotulo, valor, link in [
-    ('Unidades ativas', stats.unidades, url_for('unidades.listar') if current_user.is_gestor else none),
-    ('Em aberto', stats.em_aberto|brl, url_for('cobrancas.listar', status='pendente')),
-    ('Cobranças atrasadas', stats.atrasadas, url_for('cobrancas.listar', status='atrasada')),
-    ('Ocorrências abertas', stats.ocorrencias, url_for('ocorrencias.listar')),
-    ('Reservas pendentes', stats.reservas, url_for('reservas.listar')),
-    ('Visitantes dentro', stats.visitantes, url_for('visitantes.listar')),
-    ('Encomendas aguardando', stats.encomendas, url_for('encomendas.listar'))] %}
-  <div class="col-6 col-lg"><div class="card h-100"><div class="card-body">
-    <div class="text-muted small">{{ rotulo }}</div>
-    <div class="fs-4 fw-semibold">{% if link %}<a class="text-decoration-none" href="{{ link }}">{{ valor }}</a>{% else %}{{ valor }}{% endif %}</div>
-  </div></div></div>
-  {% endfor %}
+<div class="mb-4">
+  <h1 class="mb-0">Visão geral</h1>
+  <div class="text-muted">{% if current_user.is_gestor or current_user.role == 'porteiro' %}Todas as unidades{% elif current_user.unidade %}Unidade {{ current_user.unidade.identificacao }}{% else %}Sem unidade vinculada{% endif %} · {{ hoje|data_br }}</div>
 </div>
-<h2 class="h5">Comunicados recentes</h2>
-{% for c in comunicados %}
-<div class="card mb-2"><div class="card-body">
-  <h3 class="h6">{% if c.fixado %}📌 {% endif %}{{ c.titulo }}</h3>
-  <p class="mb-1">{{ c.corpo }}</p>
-  <small class="text-muted">{{ c.autor.nome }} · {{ c.criado_em.strftime('%d/%m/%Y') }}</small>
-</div></div>
-{% else %}<p class="text-muted">Nenhum comunicado.</p>{% endfor %}
+
+<div class="metrics mb-4">
+  <a class="metric" href="{{ url_for('cobrancas.listar', status='pendente') }}"><div class="metric-label">Em aberto</div><div class="metric-value">{{ stats.em_aberto|brl }}</div></a>
+  <a class="metric" href="{{ url_for('cobrancas.listar', status='atrasada') }}"><div class="metric-label">Cobranças atrasadas</div><div class="metric-value {{ 'bad' if stats.atrasadas }}">{{ stats.atrasadas }}</div></a>
+  <a class="metric" href="{{ url_for('ocorrencias.listar') }}"><div class="metric-label">Ocorrências abertas</div><div class="metric-value">{{ stats.ocorrencias }}</div></a>
+  <a class="metric" href="{{ url_for('reservas.listar') }}"><div class="metric-label">Reservas pendentes</div><div class="metric-value">{{ stats.reservas }}</div></a>
+  <a class="metric" href="{{ url_for('visitantes.listar') }}"><div class="metric-label">Visitantes dentro</div><div class="metric-value">{{ stats.visitantes }}</div></a>
+  <a class="metric" href="{{ url_for('encomendas.listar') }}"><div class="metric-label">Encomendas aguardando</div><div class="metric-value">{{ stats.encomendas }}</div></a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <section class="panel" aria-labelledby="h-atraso">
+      <div class="panel-head"><h2 id="h-atraso">Cobranças em atraso</h2><a class="small" href="{{ url_for('cobrancas.listar', status='atrasada') }}">Ver todas</a></div>
+      {% if em_atraso %}
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Unidade</th><th>Vencimento</th><th class="text-end">Atraso</th><th class="text-end">Valor atualizado</th></tr></thead>
+        {% for c in em_atraso %}
+        <tr><td>{{ c.unidade.identificacao }}</td><td>{{ c.vencimento|data_br }}</td><td class="text-end">{{ c.dias_atraso() }} dias</td><td class="text-end">{{ c.valor_atualizado()|brl }}</td></tr>
+        {% endfor %}
+      </table></div>
+      {% else %}<div class="empty">Nenhuma cobrança em atraso.</div>{% endif %}
+    </section>
+  </div>
+  <div class="col-lg-5">
+    <section class="panel" aria-labelledby="h-com">
+      <div class="panel-head"><h2 id="h-com">Comunicados</h2><a class="small" href="{{ url_for('comunicados.listar') }}">Ver todos</a></div>
+      {% for c in comunicados %}
+      <div class="row-item">
+        <div class="fw-medium">{% if c.fixado %}<span class="badge text-bg-primary me-1">Fixado</span>{% endif %}{{ c.titulo }}</div>
+        <div class="text-muted small mt-1">{{ c.corpo|truncate(140) }}</div>
+        <div class="text-muted small mt-1">{{ c.autor.nome }} · {{ c.criado_em.strftime('%d/%m/%Y') }}</div>
+      </div>
+      {% else %}<div class="empty">Nenhum comunicado publicado.</div>{% endfor %}
+    </section>
+  </div>
+</div>
 {% endblock %}

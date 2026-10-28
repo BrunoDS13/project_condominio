@@ -3,7 +3,7 @@
 {% block title %}Reservas{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between mb-3"><h1 class="h4">Reservas de áreas comuns</h1><a class="btn btn-primary" href="{{ url_for('reservas.nova') }}">+ Nova</a></div>
-<table class="table table-sm table-striped bg-white">
+<div class="table-responsive"><table class="table table-sm table-striped bg-white">
   <thead><tr><th>Data</th><th>Horário</th><th>Área</th><th>Unidade</th><th>Solicitante</th><th>Status</th><th></th></tr></thead>
   {% for r in pag.items %}
   <tr><td>{{ r.data|data_br }}</td><td>{{ r.inicio.strftime('%H:%M') }}–{{ r.fim.strftime('%H:%M') }}</td><td>{{ r.area.nome }}</td>
@@ -18,6 +18,6 @@
           {{ botao_post(url_for('reservas.cancelar', id=r.id), 'Cancelar', 'btn-outline-secondary', 'Cancelar esta reserva?') }}
         {% endif %}</td></tr>
   {% else %}<tr><td colspan="7" class="text-muted">Nenhuma reserva.</td></tr>{% endfor %}
-</table>
+</table></div>
 {{ paginacao(pag, 'reservas.listar') }}
 {% endblock %}

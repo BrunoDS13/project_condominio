@@ -1,28 +1,40 @@
-{% macro campo(f) %}
+{% macro campo(f, ac='off') %}
   {% if f.type == 'BooleanField' %}
     <div class="form-check mb-3">{{ f(class="form-check-input") }} <label class="form-check-label" for="{{ f.id }}">{{ f.label.text }}</label></div>
   {% else %}
+    {% set sem_corretor = f.name in ('email', 'placa', 'senha', 'atual', 'nova', 'confirma', 'documento') %}
     <div class="mb-3">
       {{ f.label(class="form-label") }}
-      {{ f(class="form-select" if f.type in ('SelectField',) else "form-control" ~ (" is-invalid" if f.errors else "")) }}
-      {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      {% if f.type in ('SelectField',) %}
+        {{ f(class="form-select" ~ (" is-invalid" if f.errors else ""), autocomplete=ac) }}
+      {% elif f.type == 'TextAreaField' %}
+        {{ f(class="form-control" ~ (" is-invalid" if f.errors else ""), rows=5, autocomplete=ac) }}
+      {% else %}
+        {{ f(class="form-control" ~ (" is-invalid" if f.errors else ""), autocomplete=ac, spellcheck=('false' if sem_corretor else 'true')) }}
+      {% endif %}
+      {% for e in f.errors %}<div class="text-danger small" role="alert">{{ e }}</div>{% endfor %}
     </div>
   {% endif %}
 {% endmacro %}
 
 {% macro form_completo(form, enviar="Salvar") %}
+  {% set mapas = {
+    'LoginForm': {'email': 'username', 'senha': 'current-password'},
+    'TrocarSenhaForm': {'atual': 'current-password', 'nova': 'new-password', 'confirma': 'new-password'}
+  } %}
+  {% set mapa = mapas.get(form.__class__.__name__, {}) %}
   <form method="post" novalidate>
     {{ form.hidden_tag() }}
-    {% for f in form if f.type not in ('CSRFTokenField', 'HiddenField') %}{{ campo(f) }}{% endfor %}
-    <button class="btn btn-primary">{{ enviar }}</button>
+    {% for f in form if f.type not in ('CSRFTokenField', 'HiddenField') %}{{ campo(f, mapa.get(f.name, 'off')) }}{% endfor %}
+    <button type="submit" class="btn btn-primary">{{ enviar }}</button>
   </form>
 {% endmacro %}
 
 {% macro paginacao(pag, endpoint) %}
   {% if pag.pages > 1 %}
-  <nav><ul class="pagination pagination-sm">
+  <nav aria-label="Paginação"><ul class="pagination pagination-sm">
     {% for p in pag.iter_pages() %}
-      {% if p %}<li class="page-item {{ 'active' if p == pag.page }}"><a class="page-link" href="{{ url_for(endpoint, page=p, **kwargs) }}">{{ p }}</a></li>
+      {% if p %}<li class="page-item {{ 'active' if p == pag.page }}"><a class="page-link" href="{{ url_for(endpoint, page=p, **kwargs) }}"{% if p == pag.page %} aria-current="page"{% endif %}>{{ p }}</a></li>
       {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
     {% endfor %}
   </ul></nav>
@@ -32,6 +44,6 @@
 {% macro botao_post(url, texto, classe="btn-outline-secondary", confirmar=None) %}
   <form method="post" action="{{ url }}" class="d-inline" {% if confirmar %}onsubmit="return confirm('{{ confirmar }}')"{% endif %}>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="btn btn-sm {{ classe }}">{{ texto }}</button>
+    <button type="submit" class="btn btn-sm {{ classe }}">{{ texto }}</button>
   </form>
 {% endmacro %}

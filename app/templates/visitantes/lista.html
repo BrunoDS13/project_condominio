@@ -8,7 +8,7 @@
   <a class="btn btn-outline-secondary {{ 'active' if filtro == 'dentro' }}" href="{{ url_for('visitantes.listar', filtro='dentro') }}">No condomínio agora</a>
   <a class="btn btn-outline-secondary {{ 'active' if filtro == 'todos' }}" href="{{ url_for('visitantes.listar', filtro='todos') }}">Histórico</a>
 </div>
-<table class="table table-sm table-striped bg-white">
+<div class="table-responsive"><table class="table table-sm table-striped bg-white">
   <thead><tr><th>Nome</th><th>Tipo</th><th>Unidade</th><th>Documento</th><th>Placa</th><th>Entrada</th><th>Saída</th><th></th></tr></thead>
   {% for v in pag.items %}
   <tr><td>{{ v.nome }}</td><td>{{ v.tipo_label }}</td><td>{{ v.unidade.identificacao }}</td><td>{{ v.documento or '—' }}</td>
@@ -16,6 +16,6 @@
       <td>{% if v.saida_em %}{{ v.saida_em.strftime('%d/%m %H:%M') }}{% else %}<span class="badge text-bg-success">Dentro</span>{% endif %}</td>
       <td class="text-end">{% if v.dentro and current_user.role in ('admin', 'sindico', 'porteiro') %}{{ botao_post(url_for('visitantes.saida', id=v.id), 'Registrar saída', 'btn-outline-primary') }}{% endif %}</td></tr>
   {% else %}<tr><td colspan="8" class="text-muted">Nenhum registro.</td></tr>{% endfor %}
-</table>
+</table></div>
 {{ paginacao(pag, 'visitantes.listar', filtro=filtro) }}
 {% endblock %}

@@ -12,7 +12,7 @@
   {% for v, t in [('', 'Todas'), ('pendente', 'Pendentes'), ('atrasada', 'Atrasadas'), ('paga', 'Pagas'), ('cancelada', 'Canceladas')] %}
   <a class="btn btn-outline-secondary {{ 'active' if status == v }}" href="{{ url_for('cobrancas.listar', status=v) }}">{{ t }}</a>{% endfor %}
 </div>
-<table class="table table-sm table-striped bg-white">
+<div class="table-responsive"><table class="table table-sm table-striped bg-white">
   <thead><tr><th>Unidade</th><th>Descrição</th><th>Competência</th><th>Vencimento</th><th class="text-end">Valor</th><th class="text-end">Atualizado</th><th>Status</th><th></th></tr></thead>
   {% for c in pag.items %}
   <tr><td>{{ c.unidade.identificacao }}</td><td>{{ c.descricao }}</td><td>{{ c.competencia.strftime('%m/%Y') }}</td>
@@ -23,6 +23,6 @@
         {{ botao_post(url_for('cobrancas.pagar', id=c.id), 'Dar baixa', 'btn-success') }}
         {{ botao_post(url_for('cobrancas.cancelar', id=c.id), 'Cancelar', 'btn-outline-danger', 'Cancelar esta cobrança?') }}{% endif %}</td></tr>
   {% else %}<tr><td colspan="8" class="text-muted">Nenhuma cobrança.</td></tr>{% endfor %}
-</table>
+</table></div>
 {{ paginacao(pag, 'cobrancas.listar', status=status) }}
 {% endblock %}
